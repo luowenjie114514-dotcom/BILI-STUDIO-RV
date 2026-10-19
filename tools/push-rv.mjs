@@ -56,7 +56,7 @@ async function putFile(relPath, absPath, message) {
 const targets = [
   ['README.md', path.join(SRC, 'README.md'), 'docs: README 加更新日志入口与素材清单'],
   ['CHANGELOG.md', path.join(SRC, 'CHANGELOG.md'), 'docs: 同步 CHANGELOG 到落地页仓库'],
-  ['index.html', path.join(SRC, 'index.html'), 'feat: NASA-PUNK 宣传页（自包含单文件）'],
+  ['index.html', path.join(SRC, 'index.html'), 'style: 区块头栅格修正 + 条带置顶 + 水印压淡'],
   ['LICENSE', path.join(SRC, 'LICENSE'), 'chore: MIT License'],
   ['.gitignore', path.join(SRC, '.gitignore'), 'chore: gitignore'],
   ['assets/whale-main.webp', path.join(SRC, 'assets', 'whale-main.webp'), 'assets: 鲸鱼娘主立绘 1024x1536'],
