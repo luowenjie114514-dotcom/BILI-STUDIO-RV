@@ -103,9 +103,36 @@ async function main() {
   const jsErrors = await evalJS(`(window.__jsErrors||[]).join(' | ')`);
   console.log('[jsErrors]', jsErrors || '(无)');
 
+  /* 在所有截图动作之前，先把「浮层类」全部关掉。
+     之前只调 recallAllWins()，日志小窗 #logMini 是 fixed 定位浮层，
+     会盖在右下角的小窗上（AI 接口 / 任务参数常被压住），截图就废了。
+     这里把日志小窗、它的胶囊、复盘按钮、悬浮刻度等都藏掉，
+     只保留窗口本身的内容 —— 宣传图要的是干净界面。 */
+  const hideOverlays = `(function(){
+    try { closeLogMini && closeLogMini(); } catch(e) {}
+    var ids = ['logMini','logMiniPill','recallPill','scrollCurve','scrollRail','toTop','backTop'];
+    ids.forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    // 兜底：任何 fixed 定位的浮层（除顶栏和已关闭的）一律隐藏
+    Array.prototype.forEach.call(document.querySelectorAll('body *'), function(el){
+      var cs = getComputedStyle(el);
+      if (cs.position !== 'fixed') return;
+      if (el.closest('.topbar, #topbar, header')) return;
+      if (el.id === 'logMiniPill') return;
+      el.style.display = 'none';
+    });
+    // 滚动条也藏掉，避免截图右侧出现一条灰杠
+    document.documentElement.style.scrollbarWidth = 'none';
+    return 'overlays hidden';
+  })()`;
+
   // 1) 全貌图：所有窗口呼出 + 排回屏幕
   await evalJS(`(function(){ try{ recallAllWins && recallAllWins(); }catch(e){} })()`);
   await sleep(900);
+  await evalJS(hideOverlays);
+  await sleep(250);
   let shot = await wsCall(sock, 'Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
   fs.writeFileSync(path.join(ROOT, '_testrun', `${OUT_PREFIX}-all.png`), Buffer.from(shot.data, 'base64'));
   console.log('[shot] all');
@@ -133,7 +160,10 @@ async function main() {
           t.style.display = '';
         }
       })()`);
-      await sleep(600);
+      await sleep(400);
+      // 单窗截图再清一次浮层：切窗时日志小窗可能被轮询重新打开
+      await evalJS(hideOverlays);
+      await sleep(200);
       const s = await wsCall(sock, 'Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
       fs.writeFileSync(path.join(ROOT, '_testrun', `${OUT_PREFIX}-${w.id}.png`), Buffer.from(s.data, 'base64'));
       console.log('[shot]', w.id);
