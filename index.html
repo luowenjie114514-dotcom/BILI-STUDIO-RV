@@ -161,19 +161,60 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
   display:flex; align-items:center; gap:12px;
 }
 .hero-eyebrow::before{ content:""; width:34px; height:1px; background:var(--phosphor); }
+
+/* 瑞士国际主义大标题：
+   第一行超粗黑体 + 负字距 + 紧行高，视觉重量压在网格顶端；
+   第二行用主色，字号略收，形成「主 / 副」两级而不是等重两行。 */
 .hero h1{
   font-family:var(--disp);
-  font-size:clamp(42px,7.2vw,86px);
-  line-height:.95; letter-spacing:-.01em;
+  font-size:clamp(46px,8.4vw,104px);
+  line-height:.88; letter-spacing:-.035em;
   color:var(--txt-strong);
   text-transform:uppercase;
+  margin:0;
 }
-.hero h1 em{ font-style:normal; color:var(--phosphor); display:block; }
+.hero h1 em{
+  font-style:normal; color:var(--phosphor); display:block;
+  font-size:clamp(30px,5.2vw,64px);
+  letter-spacing:-.02em; line-height:.94; margin-top:.12em;
+}
+/* 标题下的横向「基线尺」：瑞士排版的标尺意象，纯装饰 */
+.hero-baseline{
+  display:flex; align-items:center; gap:10px;
+  margin:22px 0 0; height:14px;
+}
+.hero-baseline i{ height:2px; background:var(--line-strong); flex:1; }
+.hero-baseline i:first-child{ flex:none; width:52px; background:var(--phosphor); }
+.hero-baseline i:nth-child(2){ flex:none; width:14px; background:var(--alert); }
+.hero-baseline b{
+  font-family:var(--mono); font-size:10px; letter-spacing:.2em;
+  color:var(--txt-dim); font-weight:400;
+}
+
+/* 简介：不再是糊上去的一坨字，拆成三条「指标 + 一句话」，瑞士式栅格 */
 .hero-sub{
   font-size:clamp(15px,1.6vw,18px); color:var(--txt);
   max-width:52ch; margin-top:26px;
 }
 .hero-sub b{ color:var(--txt-strong); font-weight:600; }
+.hero-facts{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+  margin-top:30px; border-top:2px solid var(--line-strong);
+}
+.hero-fact{
+  padding:16px 14px 0; border-right:2px solid var(--line-strong);
+}
+.hero-fact:last-child{ border-right:0; }
+.hero-fact .k{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.16em;
+  color:var(--txt-dim); text-transform:uppercase;
+}
+.hero-fact .v{
+  font-family:var(--disp); font-size:clamp(22px,2.6vw,30px);
+  color:var(--phosphor); line-height:1.1; margin-top:6px;
+}
+.hero-fact .u{ font-family:var(--mono); font-size:10px; color:var(--txt-dim); margin-top:4px; }
+.hero-fact.alert .v{ color:var(--alert); }
 .hero-cta{ display:flex; flex-wrap:wrap; gap:14px; margin-top:34px; }
 .btn{
   font-family:var(--mono); font-size:12px; letter-spacing:.1em;
@@ -255,6 +296,41 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 .hero-chip img{ width:100%; height:100%; object-fit:contain; }
 @media (max-width:900px){ .hero-chip{ display:none; } }
 
+/* ── 滚动进度：顶部细线 + 右侧竖向曲线轨道 ── */
+.scroll-rail{
+  position:fixed; top:0; left:0; right:0; height:3px; z-index:120;
+  background:var(--line); pointer-events:none;
+}
+.scroll-rail-fill{
+  height:100%; width:0;
+  background:var(--phosphor);
+  box-shadow:0 0 12px var(--glow);
+  transition:width .1s linear;
+}
+/* 右侧竖向「曲线」轨道：SVG path 的 stroke-dashoffset 由滚动进度驱动，
+   所以主人看到的是「一条曲线被逐渐画出来」，不是常见的直线进度条 */
+.scroll-curve{
+  position:fixed; right:22px; top:50%; transform:translateY(-50%);
+  width:34px; height:220px; z-index:110; pointer-events:none;
+  display:none;
+}
+@media (min-width:1081px){ .scroll-curve{ display:block; } }
+.scroll-curve svg{ width:100%; height:100%; overflow:visible; }
+.scroll-curve .track{ fill:none; stroke:var(--line); stroke-width:2; }
+.scroll-curve .draw{
+  fill:none; stroke:var(--phosphor); stroke-width:3;
+  stroke-linecap:round; stroke-linejoin:round;
+  filter:drop-shadow(0 0 6px var(--glow));
+}
+.scroll-curve .knob{
+  fill:var(--phosphor); stroke:var(--void); stroke-width:2;
+}
+.scroll-pct{
+  position:absolute; left:50%; bottom:-26px; transform:translateX(-50%);
+  font-family:var(--mono); font-size:10px; letter-spacing:.08em;
+  color:var(--phosphor); white-space:nowrap;
+}
+
 /* ── 区块标题（瑞士风：编号 + 大标题 + 说明，严格网格） ── */
 .sec-num{
   font-family:var(--mono); font-size:12px; letter-spacing:.1em;
@@ -267,6 +343,104 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 }
 .sec-sub{ font-size:15px; color:var(--txt-dim); max-width:62ch; margin-top:12px; }
 .sec-sub b{ color:var(--txt-strong); font-weight:600; }
+
+/* ── 可互动演示（DEMO） ─────────────────────────────────────────────
+   一个仿控制台外壳 + 真截图。截图是真跑出来的（不是示意图），
+   所以演示窗格里看到的就是主人机器上那个界面。
+   互动：切分区 / 切主题 / 假流水线跑一遍 / 假终端敲命令。
+   ──────────────────────────────────────────────────────────────── */
+.demo{
+  border:2px solid var(--line-strong);
+  background:var(--hull);
+  box-shadow:10px 10px 0 var(--glow-soft);
+}
+/* 演示窗格里层：把真截图当「窗口内容」显示 */
+.demo-stage{
+  position:relative; overflow:hidden;
+  background:var(--void);
+  border-bottom:2px solid var(--line-strong);
+}
+.demo-shot{
+  display:block; width:100%; height:auto;
+  /* 截图是 1570px 宽，缩到容器宽；保持比例所以高度自适应 */
+}
+.demo-shot[hidden]{ display:none; }
+/* 截图加载前的占位骨架 */
+.demo-skel{
+  position:absolute; inset:0;
+  background:linear-gradient(100deg,var(--hull) 30%,var(--hull-2) 50%,var(--hull) 70%);
+  background-size:220% 100%;
+  animation:skel 1.4s linear infinite;
+  display:grid; place-items:center;
+  font-family:var(--mono); font-size:11px; letter-spacing:.16em; color:var(--txt-dim);
+}
+@keyframes skel{ from{ background-position:120% 0; } to{ background-position:-120% 0; } }
+.demo-skel.gone{ display:none; }
+
+/* 演示控制条：分区切换 + 主题 + 跑一遍 */
+.demo-bar{
+  display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  padding:12px 14px; background:var(--hull-2);
+  border-bottom:2px solid var(--line-strong);
+}
+.demo-bar .grp{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.demo-bar .lbl{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.16em;
+  color:var(--txt-dim); text-transform:uppercase; margin-right:2px;
+}
+.chip{
+  font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+  color:var(--txt-dim); background:transparent; cursor:pointer;
+  border:1px solid var(--line-strong); border-radius:0;
+  padding:6px 11px; display:inline-flex; align-items:center; gap:6px;
+  transition:color .16s,border-color .16s,background .16s;
+}
+.chip:hover{ color:var(--phosphor); border-color:var(--phosphor); }
+.chip[aria-pressed="true"]{
+  color:var(--stencil-bg); background:var(--phosphor); border-color:var(--phosphor);
+}
+.chip .dot{ width:7px; height:7px; background:currentColor; flex:none; }
+.demo-bar .spacer{ flex:1; }
+
+/* 假流水线：四步点亮的进度示意 */
+.demo-run{
+  display:grid; grid-template-columns:repeat(4,1fr); gap:0;
+  border-top:2px solid var(--line-strong);
+}
+.demo-step{
+  padding:12px 14px; border-right:2px solid var(--line-strong);
+  font-family:var(--mono); font-size:11px; color:var(--txt-dim);
+  display:flex; align-items:center; gap:9px;
+  transition:color .2s,background .2s;
+}
+.demo-step:last-child{ border-right:0; }
+.demo-step .n{
+  width:20px; height:20px; flex:none; display:grid; place-items:center;
+  border:2px solid var(--line-strong); font-size:10px;
+}
+.demo-step.on{ color:var(--txt-strong); background:var(--hull-2); }
+.demo-step.on .n{ border-color:var(--phosphor); color:var(--phosphor); }
+.demo-step.done{ color:var(--good); }
+.demo-step.done .n{ border-color:var(--good); color:var(--stencil-bg); background:var(--good); }
+
+/* 演示底部状态栏 */
+.demo-status{
+  display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center;
+  padding:10px 14px; background:var(--hull-2);
+  font-family:var(--mono); font-size:10.5px; color:var(--txt-dim);
+  border-top:2px solid var(--line-strong);
+}
+.demo-status b{ color:var(--phosphor); font-weight:400; }
+.demo-status .live{ color:var(--good); }
+
+@media (max-width:900px){
+  .demo-run{ grid-template-columns:repeat(2,1fr); }
+  .demo-step:nth-child(2n){ border-right:0; }
+  .demo-step:nth-child(-n+2){ border-bottom:2px solid var(--line-strong); }
+  .hero-facts{ grid-template-columns:1fr; }
+  .hero-fact{ border-right:0; border-bottom:2px solid var(--line-strong); padding-bottom:14px; }
+  .hero-fact:last-child{ border-bottom:0; }
+}
 
 /* ── 卡片网格 ── */
 .cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:2px solid var(--line-strong); }
@@ -329,70 +503,54 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 .node-tail-art img{ width:100%; height:auto; display:block; }
 @media (max-width:720px){ .node-tail{ grid-template-columns:1fr; } .node-tail-art{ display:none; } }
 
-/* ── 样例对照 ── */
-.payload{ display:grid; grid-template-columns:1fr 1fr; gap:0; border:2px solid var(--line-strong); }
-.payload-col{ padding:clamp(20px,2.6vw,30px); }
-.payload-col:first-child{ border-right:2px solid var(--line-strong); background:var(--hull-2); }
-.payload-col h4{
-  font-family:var(--mono); font-size:11px; letter-spacing:.16em;
-  color:var(--txt-dim); margin-bottom:18px; text-transform:uppercase;
-  display:flex; align-items:center; gap:10px;
+/* ── 分区说明卡（仿应用本体的窗格） ── */
+.panels{ display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:2px solid var(--line-strong); }
+.panel{
+  padding:clamp(16px,1.9vw,22px); border-right:2px solid var(--line-strong);
+  border-bottom:2px solid var(--line-strong); background:var(--hull);
+  display:flex; flex-direction:column; gap:12px; transition:background .2s;
 }
-.payload-col h4::before{ content:""; width:8px; height:8px; background:var(--alert); }
-.payload-col.sent h4::before{ background:var(--good); }
-.bubble{
-  border:2px solid var(--line-strong); background:var(--void);
-  padding:14px 16px; margin-bottom:14px;
-  font-size:14px; line-height:1.7;
+.panel:nth-child(3n){ border-right:0; }
+.panel:nth-last-child(-n+3){ border-bottom:0; }
+.panel:hover{ background:var(--hull-2); }
+.panel-head{
+  display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px;
+  padding-bottom:10px; border-bottom:2px solid var(--line-strong);
 }
-.bubble .who{ font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--phosphor); display:block; margin-bottom:7px; }
-.bubble.ai{ border-left:4px solid var(--alert); }
-.bubble.out{ border-left:4px solid var(--good); }
-.bubble .muted{ color:var(--txt-dim); }
-
-/* ── 分区图（12 窗格） ── */
-.deck{ display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:2px solid var(--line-strong); }
-.tile{
-  aspect-ratio:4/3; padding:14px; border-right:2px solid var(--line-strong);
-  border-bottom:2px solid var(--line-strong);
-  background:var(--hull); display:flex; flex-direction:column; gap:8px;
-  transition:background .2s;
+.panel-id{
+  font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:.08em;
+  color:var(--void); background:var(--phosphor); padding:3px 7px;
 }
-.tile:hover{ background:var(--hull-2); }
-.tile:nth-child(4n){ border-right:0; }
-.tile:nth-last-child(-n+4){ border-bottom:0; }
-.tile-top{ display:flex; align-items:center; gap:7px; }
-.tile-dot{ width:8px; height:8px; background:var(--phosphor); flex:none; }
-.tile-dot.warn{ background:var(--alert-2); }
-.tile-dot.bad{ background:var(--alert); }
-.tile-name{ font-family:var(--mono); font-size:10px; letter-spacing:.08em; color:var(--txt-strong); }
-.tile-body{ flex:1; display:flex; flex-direction:column; gap:5px; }
-.tile-line{ height:5px; background:var(--hull-3); }
-.tile-line.short{ width:60%; }
-.tile-line.mid{ width:80%; }
-.tile-line.acc{ background:var(--phosphor); opacity:.55; }
-.tile-foot{ font-family:var(--mono); font-size:9px; color:var(--txt-dim); letter-spacing:.08em; }
-
-/* ── 承载体（样例） ── */
-.payload{ display:grid; grid-template-columns:1fr 1fr; gap:0; border:2px solid var(--line-strong); }
-.payload-col{ padding:clamp(20px,2.6vw,30px); }
-.payload-col:first-child{ border-right:2px solid var(--line-strong); background:var(--hull-2); }
-.payload-col h4{
-  font-family:var(--mono); font-size:11px; letter-spacing:.16em;
-  color:var(--txt-dim); margin-bottom:18px; text-transform:uppercase;
-  display:flex; align-items:center; gap:10px;
+.panel-head h3{ font-family:var(--display); font-size:16px; letter-spacing:.02em; color:var(--txt-strong); }
+.panel-tag{ font-family:var(--mono); font-size:9px; letter-spacing:.06em; color:var(--txt-dim); }
+.panel-what{ font-size:13px; line-height:1.65; color:var(--txt); }
+.panel-what b{ color:var(--txt-strong); }
+.panel-fields{ display:grid; grid-template-columns:1fr 1fr; gap:0; border:2px solid var(--line-strong); }
+.panel-fields > div{
+  display:flex; flex-direction:column; gap:3px; padding:8px 9px;
+  border-right:2px solid var(--line-strong); border-bottom:2px solid var(--line-strong);
 }
-.payload-col h4::before{ content:""; width:8px; height:8px; background:var(--alert); }
-.payload-col.sent h4::before{ background:var(--good); }
-.bubble{
-  border:2px solid var(--line-strong); background:var(--void);
-  padding:14px 16px; margin-bottom:14px;
-  font-size:14px; line-height:1.7;
+.panel-fields > div:nth-child(2n){ border-right:0; }
+.panel-fields > div:nth-last-child(-n+2){ border-bottom:0; }
+.panel-fields dt{
+  font-family:var(--mono); font-size:9px; letter-spacing:.1em;
+  color:var(--phosphor); text-transform:uppercase;
 }
-.bubble .who{ font-family:var(--mono); font-size:10px; letter-spacing:.12em; color:var(--phosphor); display:block; margin-bottom:7px; }
-.bubble.ai{ border-left:4px solid var(--alert); }
-.bubble.out{ border-left:4px solid var(--good); }
-.bubble .muted{ color:var(--txt-dim); }
+.panel-fields dd{ font-family:var(--mono); font-size:10.5px; line-height:1.4; color:var(--txt); }
+.panel-need{
+  margin-top:auto; font-family:var(--mono); font-size:10px; line-height:1.55;
+  color:var(--txt-dim); padding-top:10px; border-top:2px solid var(--line-strong);
+}
+@media (max-width:900px){
+  .panels{ grid-template-columns:1fr; }
+  .panel:nth-child(3n){ border-right:0; }
+  .panel:nth-last-child(-n+3){ border-bottom:2px solid var(--line-strong); }
+  .panel:last-child{ border-bottom:0; }
+  .panel-fields{ grid-template-columns:1fr; }
+  .panel-fields > div{ border-right:0; }
+  .panel-fields > div:nth-last-child(-n+2){ border-bottom:2px solid var(--line-strong); }
+  .panel-fields > div:last-child{ border-bottom:0; }
+}
 
 /* ── 接口：左栏立绘 + 右栏表格（瑞士双栏 + 栏界） ── */
 .iface{ display:grid; grid-template-columns:minmax(200px,260px) 1fr; gap:0; align-items:start; }
@@ -481,6 +639,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   padding:26px 0; font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--txt-dim);
 }
 .foot-row b{ color:var(--phosphor); font-weight:400; }
+.foot-links{ display:flex; flex-wrap:wrap; gap:6px 18px; }
+.foot-links a{
+  color:var(--txt-dim); text-decoration:none;
+  border-bottom:1px solid var(--line); padding-bottom:2px;
+  transition:color .16s,border-color .16s;
+}
+.foot-links a:hover{ color:var(--phosphor); border-color:var(--phosphor); }
 .foot-note{
   border-top:1px solid var(--line); padding:16px 0 30px;
   font-size:12px; color:var(--txt-dim); line-height:1.8;
@@ -501,12 +666,11 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   .card:nth-child(2n){ border-right:0; }
   .cards .card:nth-last-child(-n+1){ border-bottom:0; }
   .cards:has(.card:nth-child(4)) .card:nth-last-child(-n+2){ border-bottom:2px solid var(--line-strong); }
-  .deck{ grid-template-columns:repeat(2,1fr); }
-  .tile:nth-child(4n){ border-right:2px solid var(--line-strong); }
-  .tile:nth-child(2n){ border-right:0; }
-  .tile:nth-last-child(-n+1){ border-bottom:0; }
-  .payload{ grid-template-columns:1fr; }
-  .payload-col:first-child{ border-right:0; border-bottom:2px solid var(--line-strong); }
+  .panels{ grid-template-columns:repeat(2,1fr); }
+  .panel:nth-child(3n){ border-right:2px solid var(--line-strong); }
+  .panel:nth-child(2n){ border-right:0; }
+  .panel:nth-last-child(-n+1){ border-bottom:0; }
+  .panels:has(.panel:nth-child(9)) .panel:nth-last-child(-n+3){ border-bottom:2px solid var(--line-strong); }
   .iface{ grid-template-columns:1fr; }
   .iface-art{ display:none; }
 }
@@ -515,9 +679,6 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   .cards{ grid-template-columns:1fr; }
   .card{ border-right:0 !important; border-bottom:2px solid var(--line-strong) !important; }
   .cards .card:last-child{ border-bottom:0 !important; }
-  .deck{ grid-template-columns:1fr; }
-  .tile{ border-right:0 !important; border-bottom:2px solid var(--line-strong) !important; }
-  .deck .tile:last-child{ border-bottom:0 !important; }
   .gauges{ grid-template-columns:1fr; }
   .gauge{ border-right:0; border-bottom:2px solid var(--line-strong); }
   .gauge:last-child{ border-bottom:0; }
@@ -539,6 +700,17 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <div class="bg-scan"></div>
 <div class="bg-grid"></div>
 
+<!-- ═══ 滚动进度：顶线 + 右侧曲线轨道 ═══ -->
+<div class="scroll-rail" aria-hidden="true"><div class="scroll-rail-fill" id="scrollFill"></div></div>
+<div class="scroll-curve" id="scrollCurve" aria-hidden="true">
+  <svg viewBox="0 0 34 220" preserveAspectRatio="none">
+    <path class="track" d="M17 4 C 4 40, 30 80, 17 116 C 6 148, 28 172, 17 216"/>
+    <path class="draw" id="scrollDraw" d="M17 4 C 4 40, 30 80, 17 116 C 6 148, 28 172, 17 216"/>
+    <circle class="knob" id="scrollKnob" cx="17" cy="4" r="4.5"/>
+  </svg>
+  <span class="scroll-pct" id="scrollPct">0%</span>
+</div>
+
 <!-- ═══ 顶栏 HUD ═══ -->
 <header class="hud">
   <div class="hud-mark">
@@ -546,15 +718,16 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
     <div class="hud-brand">bili-studio<small>AUTOMATION DECK · LOCALHOST</small></div>
   </div>
   <nav class="hud-nav">
+    <a href="#demo">演示</a>
     <a href="#overview">总览</a>
     <a href="#pipeline">流水线</a>
-    <a href="#payload">样例</a>
     <a href="#deck">分区</a>
     <a href="#interface">接口</a>
     <a href="#safety">边界</a>
     <a href="#log">版本</a>
   </nav>
   <div class="hud-tools">
+    <a class="hud-btn" href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO" target="_blank" rel="noopener">↗ <b>仓库</b></a>
     <button class="hud-btn" id="themeBtn">◐ <b id="themeTxt">浅色</b></button>
   </div>
 </header>
@@ -565,16 +738,22 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <section class="hero" id="top">
   <div class="wrap hero-grid">
     <div class="hero-copy">
-      <div class="hero-eyebrow">LOCAL BUILD · 2026-10-19</div>
+      <div class="hero-eyebrow">LOCAL BUILD · v1.5.4 · 2026-10-19</div>
       <h1>蓝色大肥鱼<em>自动化搬史</em></h1>
+      <div class="hero-baseline" aria-hidden="true"><i></i><i></i><b>BASELINE / 12-COL GRID</b></div>
       <p class="hero-sub">
-        bili-studio 是一台跑在本机的 B 站自动化控制台。<b>AI 读你的偏好</b>、想关键词、
-        搜视频、写问候，然后<b>替你发出去</b>——评论区或私信，两种频道。
+        一台跑在本机的 B 站自动化控制台。<b>AI 读你的偏好</b>、想关键词、搜视频、写问候，
+        然后<b>替你发出去</b>——评论区或私信，两种频道。
         没有云端账号，没有遥测，cookie 只存在你自己的 <b>data/config.json</b> 里。
       </p>
+      <div class="hero-facts">
+        <div class="hero-fact"><div class="k">默认模型</div><div class="v">DeepSeek</div><div class="u">v4-flash · 本机调用</div></div>
+        <div class="hero-fact"><div class="k">发布通道</div><div class="v">2</div><div class="u">评论区 / 私信</div></div>
+        <div class="hero-fact alert"><div class="k">数据外传</div><div class="v">0</div><div class="u">无遥测 · 无上报</div></div>
+      </div>
       <div class="hero-cta">
-        <a class="btn" href="#pipeline">查看流水线</a>
-        <a class="btn ghost" href="#safety">先读边界</a>
+        <a class="btn" href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO" target="_blank" rel="noopener">↗ 源码仓库</a>
+        <a class="btn ghost" href="https://github.com/luowenjie114514-dotcom/releases" target="_blank" rel="noopener">⤓ 下载 exe</a>
       </div>
     </div>
     <div class="hero-right">
@@ -599,16 +778,76 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </figure>
     </div>
   </div>
-  <div class="wrap">
-    <div class="gauges reveal">
-      <div class="gauge"><div class="k">默认模型</div><div class="v">DeepSeek</div><div class="u">v4-flash · 本机调用</div></div>
-      <div class="gauge"><div class="k">发布通道</div><div class="v">2</div><div class="u">评论区 / 私信</div></div>
-      <div class="gauge"><div class="k">数据外传</div><div class="v">0</div><div class="u">无遥测 · 无上报</div></div>
-    </div>
-  </div>
   <!-- 角落锚点：512 方图缩成小章，嵌在 Hero 底部右缘，不抢主立绘 -->
   <div class="hero-chip" aria-hidden="true">
     <img src="assets/whale-avatar.webp" alt="" width="512" height="512">
+  </div>
+</section>
+
+<!-- ═══ 00 可互动演示 ═══ -->
+<section id="demo">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="sec-num">00</div>
+      <div>
+        <h2 class="sec-title">演示</h2>
+        <p class="sec-sub">下面每一张都是<b>真跑出来的界面截图</b>，不是示意图。切分区、切配色、跑一遍流水线——都可以点。</p>
+      </div>
+    </div>
+
+    <div class="demo reveal" id="demoBox">
+      <!-- 控制条 -->
+      <div class="demo-bar">
+        <div class="grp">
+          <span class="lbl">分区</span>
+          <button class="chip" data-shot="full" aria-pressed="true"><span class="dot"></span>全貌</button>
+          <button class="chip" data-shot="run" aria-pressed="false">立即执行</button>
+          <button class="chip" data-shot="accounts" aria-pressed="false">账户</button>
+          <button class="chip" data-shot="mentions" aria-pressed="false">@ 名单</button>
+          <button class="chip" data-shot="task" aria-pressed="false">任务参数</button>
+          <button class="chip" data-shot="ai" aria-pressed="false">AI 接口</button>
+          <button class="chip" data-shot="skin" aria-pressed="false">配色</button>
+          <button class="chip" data-shot="log" aria-pressed="false">日志</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="grp">
+          <span class="lbl">配色</span>
+          <button class="chip" id="demoThemeBtn" aria-pressed="false">◐ 切到浅色</button>
+        </div>
+      </div>
+
+      <!-- 舞台：真截图在这里切换 -->
+      <div class="demo-stage" id="demoStage">
+        <div class="demo-skel" id="demoSkel">LOADING SCREENSHOTS…</div>
+        <img class="demo-shot" id="shot-full" src="assets/shot-full.webp" alt="控制台全貌：11 个小窗排布在桌面上的真实截图" width="1570" height="858">
+        <img class="demo-shot" id="shot-run" src="assets/shot-run.webp" alt="立即执行分区真实截图" width="1570" height="858" hidden>
+        <img class="demo-shot" id="shot-accounts" src="assets/shot-accounts.webp" alt="账户分区真实截图" width="1570" height="858" hidden>
+        <img class="demo-shot" id="shot-mentions" src="assets/shot-mentions.webp" alt="@ 名单分区真实截图" width="1570" height="858" hidden>
+        <img class="demo-shot" id="shot-task" src="assets/shot-task.webp" alt="任务参数分区真实截图" width="1570" height="858" hidden>
+        <img class="demo-shot" id="shot-ai" src="assets/shot-ai.webp" alt="AI 接口分区真实截图" width="1570" height="858" hidden>
+        <img class="demo-shot" id="shot-skin" src="assets/shot-skin.webp" alt="配色分区真实截图" width="1570" height="858" hidden>
+        <img class="demo-shot" id="shot-log" src="assets/shot-log.webp" alt="日志分区真实截图" width="1570" height="858" hidden>
+      </div>
+
+      <!-- 假流水线进度 -->
+      <div class="demo-run" id="demoRun">
+        <div class="demo-step" data-i="0"><span class="n">1</span>偏好 → 关键词</div>
+        <div class="demo-step" data-i="1"><span class="n">2</span>搜索 → 选片</div>
+        <div class="demo-step" data-i="2"><span class="n">3</span>成文 → 裁字</div>
+        <div class="demo-step" data-i="3"><span class="n">4</span>发送 → 归档</div>
+      </div>
+
+      <!-- 状态栏 -->
+      <div class="demo-status">
+        <span>状态 <b id="demoState">待机</b></span>
+        <span>分区 <b id="demoWhich">全貌</b></span>
+        <span>日志 <b id="demoLog">—</b></span>
+        <span class="live" id="demoLive">● 127.0.0.1</span>
+        <span class="spacer" style="flex:1"></span>
+        <button class="chip" id="demoPlayBtn">▶ 跑一遍流水线</button>
+        <button class="chip" id="demoResetBtn">↺ 重置</button>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -723,73 +962,152 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   </div>
 </section>
 
-<!-- ═══ 03 样例 ═══ -->
-<section id="payload">
+<!-- ═══ 03 分区 ═══ -->
+<section id="deck">
   <div class="wrap">
     <div class="sec-head reveal">
       <div class="sec-num">03</div>
       <div>
-        <h2 class="sec-title">样例</h2>
-        <p class="sec-sub">左：AI 交回的原稿。右：真正发出去的那一条。<b>中间隔着字数裁剪、@ 拼接与署名</b>。</p>      </div>
-    </div>
-    <div class="payload reveal">
-      <div class="payload-col">
-        <h4>AI 原稿</h4>
-        <div class="bubble ai">
-          <span class="who">私信 · deepseek-v4-flash</span>
-          「好 fnd 那个米老鼠最吓人的一集，我刷到有点绷不住，你去看前最好备好速效救心丸。」
-        </div>
-        <div class="bubble ai">
-          <span class="who">评论 · 咸鱼口吻</span>
-          「刚刷到这条，讲的东西还挺对胃口的，值得一看。」
-        </div>
-        <div class="bubble ai">
-          <span class="who">私信 · 早期版本（已废弃）</span>
-          <span class="muted">「你也太懂我了吧」——表演情绪，不转述事实。v1.5.1 起淘汰。</span>
-        </div>
-      </div>
-      <div class="payload-col sent">
-        <h4>实际发出</h4>
-        <div class="bubble out">
-          <span class="who">私信 · 39/40 字</span>
-          @白希爱吃巧克力 好 fnd 那个米老鼠最吓人的一集，我刷到有点绷不住，你去看前最好备好速效救心丸。<span class="muted">——笨蛋鲸鱼娘</span>
-        </div>
-        <div class="bubble out">
-          <span class="who">评论 · @ 不计入 20 字</span>
-          @Yaprussia @道馆恶魔三鹰朝 刚刷到这条，讲的东西还挺对胃口的，值得一看。<span class="muted">——鲸鱼娘</span>
-        </div>
-        <div class="bubble out">
-          <span class="who">卡片 · 尽力而为</span>
-          <span class="muted">先试 msg_type=7 分享卡片；网页端只放开 1/2/5，返回 -400 时降级为「文本 + 视频链接」。</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ 04 分区 ═══ -->
-<section id="deck">
-  <div class="wrap">
-    <div class="sec-head reveal">
-      <div class="sec-num">04</div>
-      <div>
         <h2 class="sec-title">分区</h2>
-        <p class="sec-sub">十一段窗格，可拖拽 / 可收起 / 可关闭。布局存于本地，再次开启保持原状。</p>
+        <p class="sec-sub">十一段窗格，可拖拽 / 可收起 / 可关闭。每段负责什么、跑之前要满足什么，都写在下面。</p>
       </div>
     </div>
-    <div class="deck reveal">
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">RUN</span></div><div class="tile-body"><div class="tile-line mid acc"></div><div class="tile-line"></div><div class="tile-line short"></div></div><div class="tile-foot">立即执行</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot bad"></span><span class="tile-name">ACC</span></div><div class="tile-body"><div class="tile-line short"></div><div class="tile-line"></div><div class="tile-line mid"></div></div><div class="tile-foot">账户 · 验活</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">MEN</span></div><div class="tile-body"><div class="tile-line"></div><div class="tile-line short"></div></div><div class="tile-foot">@ 名单</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">PREF</span></div><div class="tile-body"><div class="tile-line mid"></div><div class="tile-line"></div><div class="tile-line short"></div></div><div class="tile-foot">偏好</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">STYLE</span></div><div class="tile-body"><div class="tile-line"></div><div class="tile-line short"></div></div><div class="tile-foot">语气</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot warn"></span><span class="tile-name">TASK</span></div><div class="tile-body"><div class="tile-line mid"></div><div class="tile-line"></div></div><div class="tile-foot">节流</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">SCH</span></div><div class="tile-body"><div class="tile-line"></div><div class="tile-line mid"></div></div><div class="tile-foot">定时</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">AI</span></div><div class="tile-body"><div class="tile-line short"></div><div class="tile-line"></div><div class="tile-line mid"></div></div><div class="tile-foot">接口</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">SKIN</span></div><div class="tile-body"><div class="tile-line"></div><div class="tile-line short"></div></div><div class="tile-foot">配色</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">LOG</span></div><div class="tile-body"><div class="tile-line mid acc"></div><div class="tile-line short"></div></div><div class="tile-foot">日志</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot"></span><span class="tile-name">HIST</span></div><div class="tile-body"><div class="tile-line"></div><div class="tile-line short"></div></div><div class="tile-foot">历史</div></div>
-      <div class="tile"><div class="tile-top"><span class="tile-dot warn"></span><span class="tile-name">TERM</span></div><div class="tile-body"><div class="tile-line mid"></div><div class="tile-line"></div></div><div class="tile-foot">终端</div></div>
+
+    <!-- 每个分区一张「仿应用本体」的说明卡：标题栏 + 干什么 + 关键字段 + 前置条件 -->
+    <div class="panels reveal">
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">RUN</span><h3>立即执行</h3><span class="panel-tag">POST /api/task/run</span></div>
+        <p class="panel-what">按一下就跑一轮完整流水线。跑之前会先验活当前账户，<b>失效就直接中止，一条都不发</b>。</p>
+        <dl class="panel-fields">
+          <div><dt>轮次</dt><dd>videosPerRun，默认 3 条</dd></div>
+          <div><dt>间隔</dt><dd>delaySeconds，默认 12 秒</dd></div>
+          <div><dt>模式</dt><dd>真实发送 / 干跑（只生成不发送）</dd></div>
+          <div><dt>通道</dt><dd>评论区 / 私信</dd></div>
+        </dl>
+        <div class="panel-need">前置：账户 cookie 有效 · @ 名单非空 · 偏好已分析出关键词</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">ACC</span><h3>账户</h3><span class="panel-tag">POST /api/accounts/test</span></div>
+        <p class="panel-what">粘贴 cookie 即入档，可同时存多个号。<b>失效的会标红</b>，任务不会拿它去发。</p>
+        <dl class="panel-fields">
+          <div><dt>SESSDATA</dt><dd>登录态核心，222 位</dd></div>
+          <div><dt>bili_jct</dt><dd>csrf 令牌，32 位</dd></div>
+          <div><dt>buvid3 / 4</dt><dd>设备标识，降低风控误判</dd></div>
+          <div><dt>健康态</dt><dd>有效 / 失效 / 未测 / 权限不足</dd></div>
+        </dl>
+        <div class="panel-need">cookie 只写本机 data/config.json，不外传、不入日志、不入 git</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">MEN</span><h3>@ 名单</h3><span class="panel-tag">按 UID 定位</span></div>
+        <p class="panel-what">要 @ 谁，按 <b>UID 精准定位</b>，不靠昵称撞运气。列表可增删，也会显示解析出的昵称。</p>
+        <dl class="panel-fields">
+          <div><dt>UID</dt><dd>必填，纯数字</dd></div>
+          <div><dt>昵称</dt><dd>自动解析，可手改</dd></div>
+          <div><dt>自己</dt><dd>自动识别并跳过，不占用发送名额</dd></div>
+          <div><dt>上限</dt><dd>评论 @ 不计入 20 字正文</dd></div>
+        </dl>
+        <div class="panel-need">私信模式下只发给名单第一个人，且跳过自己</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">PREF</span><h3>内容偏好</h3><span class="panel-tag">POST /api/preview</span></div>
+        <p class="panel-what">用大白话写喜好，交给 AI 拆成搜索词。<b>词表可以手改</b>，改完立即生效。</p>
+        <dl class="panel-fields">
+          <div><dt>输入</dt><dd>自由文本，例：「喜欢看动物保护相关的纪录片」</dd></div>
+          <div><dt>输出</dt><dd>关键词列表 + 风格说明</dd></div>
+          <div><dt>风格</dt><dd>咸鱼 / 正式 / 撒娇等口吻</dd></div>
+          <div><dt>重跑</dt><dd>点「分析」即可重新生成</dd></div>
+        </dl>
+        <div class="panel-need">偏好只影响评论；私信不读风格，只转述「刷到了什么」</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">TASK</span><h3>任务参数</h3><span class="panel-tag">节流与上限</span></div>
+        <p class="panel-what">跑多快、跑多少，全在这。<b>默认值偏保守</b>，改大前先想清楚风控。</p>
+        <dl class="panel-fields">
+          <div><dt>每轮视频</dt><dd>1–10，默认 3</dd></div>
+          <div><dt>发送间隔</dt><dd>秒，默认 12</dd></div>
+          <div><dt>每日上限</dt><dd>条，默认 10，跨重启仍然记得</dd></div>
+          <div><dt>搜索翻页</dt><dd>页，默认 2</dd></div>
+        </dl>
+        <div class="panel-need">私信正文字数上限默认 40 字，超出截到分句；@ 昵称和署名不计入</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">SCH</span><h3>定时任务</h3><span class="panel-tag">服务端调度</span></div>
+        <p class="panel-what">挂上就不用管。<b>调度在服务端</b>，关掉网页它照样跑，除非把整个 exe 关掉。</p>
+        <dl class="panel-fields">
+          <div><dt>触发</dt><dd>固定间隔 / 每日闹钟</dd></div>
+          <div><dt>通道</dt><dd>评论 / 私信，可单独指定</dd></div>
+          <div><dt>账户</dt><dd>可指定某一个号</dd></div>
+          <div><dt>次数</dt><dd>可限总轮数，到数自停</dd></div>
+        </dl>
+        <div class="panel-need">定时任务依赖进程活着：exe 关了就不会跑，重启后需重新挂</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">AI</span><h3>AI 接口</h3><span class="panel-tag">OpenAI 兼容</span></div>
+        <p class="panel-what">不绑死任何一家。<b>任何 OpenAI 兼容供应商都能接</b>，内置预设，也可手填端点。</p>
+        <dl class="panel-fields">
+          <div><dt>Base URL</dt><dd>例：https://opc.fiime.cn/api/model-service/v1</dd></div>
+          <div><dt>模型</dt><dd>默认 deepseek-v4-flash</dd></div>
+          <div><dt>Key</dt><dd>支持 Bearer / 自定义头 / 免鉴权</dd></div>
+          <div><dt>兼容</dt><dd>400 时自动去掉 response_format 重试</dd></div>
+        </dl>
+        <div class="panel-need">Key 优先级：界面填写 &gt; 环境变量 &gt; DSH 凭据；测试连通按钮直接验</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">SKIN</span><h3>配色与皮肤</h3><span class="panel-tag">8 组 50 项</span></div>
+        <p class="panel-what">从「只有主色副色」到<b>逐项可调</b>：底色、日志每一级、终端、弹窗全都能改，还可导入图片当皮肤。</p>
+        <dl class="panel-fields">
+          <div><dt>预设</dt><dd>7 套，点色块即换</dd></div>
+          <div><dt>自定义</dt><dd>50 项逐项取色</dd></div>
+          <div><dt>图片皮肤</dt><dd>上传 webp / png，存 data/skins/</dd></div>
+          <div><dt>持久化</dt><dd>写 config.json，换浏览器不丢</dd></div>
+        </dl>
+        <div class="panel-need">派生半透明色由主色现算，不会出现「换了橙色还留着青色焦点圈」</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">LOG</span><h3>日志</h3><span class="panel-tag">GET /api/logs</span></div>
+        <p class="panel-what">分级着色，常驻小窗。<b>失败原因一定落在日志里</b>，不会静默吞掉。</p>
+        <dl class="panel-fields">
+          <div><dt>级别</dt><dd>步骤 / 信息 / 成功 / 警告 / 错误</dd></div>
+          <div><dt>增量</dt><dd>?since=序号续传，不重复拉</dd></div>
+          <div><dt>小窗</dt><dd>可拖拽 / 可收起 / 置顶</dd></div>
+          <div><dt>落盘</dt><dd>data/exe.log，重启可查</dd></div>
+        </dl>
+        <div class="panel-need">上滑页面时自动开页内小窗，日志不会看不到</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">HIST</span><h3>历史</h3><span class="panel-tag">data/history.jsonl</span></div>
+        <p class="panel-what">每一轮发了什么、发给谁、成功还是失败，<b>逐条落盘</b>，重启不丢。</p>
+        <dl class="panel-fields">
+          <div><dt>字段</dt><dd>时间 / 通道 / 视频 / 正文 / 字数 / 结果</dd></div>
+          <div><dt>容量</dt><dd>默认 30 条，最多 200</dd></div>
+          <div><dt>清空</dt><dd>内存 + 磁盘一起清</dd></div>
+          <div><dt>去重</dt><dd>发过的视频不再重复发</dd></div>
+        </dl>
+        <div class="panel-need">v1.5.3 起从「只在内存」改为落盘，重启不再丢历史</div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head"><span class="panel-id">TERM</span><h3>站内终端</h3><span class="panel-tag">POST /api/term/exec</span></div>
+        <p class="panel-what">右上角「▣ 终端」呼出，<b>看服务进程的 stdout/stderr</b>，也能直接敲命令。</p>
+        <dl class="panel-fields">
+          <div><dt>输出</dt><dd>环形缓冲 1500 行</dd></div>
+          <div><dt>命令</dt><dd>一次一条，cd 内部处理</dd></div>
+          <div><dt>终止</dt><dd>taskkill /pid /t /f</dd></div>
+          <div><dt>退出码</dt><dd>关闭时打印 [退出码 N]</dd></div>
+        </dl>
+        <div class="panel-need">exe 里 stdout 被猴补丁改写过，所以打包后也能看到服务器日志</div>
+      </article>
+
     </div>
   </div>
 </section>
@@ -798,7 +1116,7 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <section id="interface">
   <div class="wrap">
     <div class="sec-head reveal">
-      <div class="sec-num">05</div>
+      <div class="sec-num">04</div>
       <div>
         <h2 class="sec-title">接口</h2>
         <p class="sec-sub">无框架，<code>ROUTES</code> 表手写分发。全部仅监听 <b>127.0.0.1</b>。</p>
@@ -846,7 +1164,7 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <section id="safety">
   <div class="wrap">
     <div class="sec-head reveal">
-      <div class="sec-num">07</div>
+      <div class="sec-num">05</div>
       <div>
         <h2 class="sec-title">边界</h2>
         <p class="sec-sub">放慢节奏、前置拦截，而非绕过限制。</p>
@@ -901,7 +1219,7 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <section id="log">
   <div class="wrap">
     <div class="sec-head reveal">
-      <div class="sec-num">08</div>
+      <div class="sec-num">06</div>
       <div>
         <h2 class="sec-title">版本</h2>
         <p class="sec-sub">全量改动见 <b>CHANGELOG.md</b>，控制台右上角可查。</p>
@@ -967,7 +1285,12 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <footer>
   <div class="wrap foot-row">
     <div>bili-studio <b>v1.5.4</b> · 本机运行 · 无遥测</div>
-    <div>NASA-PUNK 风格 · <b>LOCALHOST ONLY</b></div>
+    <div class="foot-links">
+      <a href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO" target="_blank" rel="noopener">↗ 源码仓库</a>
+      <a href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO#readme" target="_blank" rel="noopener">↗ README</a>
+      <a href="https://github.com/luowenjie114514-dotcom/blob/main/CHANGELOG.md" target="_blank" rel="noopener">↗ 更新日志</a>
+      <a href="https://github.com/luowenjie114514-dotcom/issues" target="_blank" rel="noopener">↗ 提 issue</a>
+    </div>
   </div>
   <div class="wrap foot-note">
     主要模型：<b>DeepSeek</b>（DeepSeek 娘 / 蓝色大肥鱼 / 鲸鱼娘）。页面中的角色图片素材来源：
@@ -1030,6 +1353,157 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       });
     }, { threshold: 0.25 });
     secs.forEach(function(s){ io2.observe(s); });
+  }
+
+  /* ══ 滚动进度：顶线 + 右侧「曲线」轨道 ══════════════════════════
+     曲线用 SVG path 画，滚动进度 = stroke-dashoffset 从全长走到 0，
+     视觉上就是「一条 S 形曲线被逐渐描出来」。端点圆点用 getPointAtLength
+     求曲线上的实际坐标，所以滚到哪儿 knob 就贴在曲线上哪儿，不会飘。
+     ═══════════════════════════════════════════════════════════ */
+  var fill = document.getElementById('scrollFill');
+  var draw = document.getElementById('scrollDraw');
+  var knob = document.getElementById('scrollKnob');
+  var pct = document.getElementById('scrollPct');
+  if (fill && draw && knob) {
+    var LEN = 0, PTS = [];
+    try { LEN = draw.getTotalLength(); } catch (e) { LEN = 0; }
+    if (LEN > 0) {
+      // 预采样 101 个点，滚动时按比例取，避免每帧都调 getPointAtLength
+      for (var i = 0; i <= 100; i++) {
+        var p = draw.getPointAtLength((LEN * i) / 100);
+        PTS.push([p.x, p.y]);
+      }
+      draw.style.strokeDasharray = LEN + ' ' + LEN;
+      draw.style.strokeDashoffset = LEN;
+    }
+
+    var raf = 0;
+    function onScroll() {
+      if (raf) return;
+      raf = requestAnimationFrame(function(){
+        raf = 0;
+        var doc = document.documentElement;
+        var max = Math.max(1, doc.scrollHeight - window.innerHeight);
+        var t = Math.min(1, Math.max(0, window.scrollY / max));
+        fill.style.width = (t * 100).toFixed(2) + '%';
+        if (pct) pct.textContent = Math.round(t * 100) + '%';
+        if (LEN > 0) {
+          draw.style.strokeDashoffset = (LEN * (1 - t)).toFixed(2);
+          var pt = PTS[Math.round(t * 100)] || PTS[PTS.length - 1];
+          knob.setAttribute('cx', pt[0]);
+          knob.setAttribute('cy', pt[1]);
+        }
+      });
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    onScroll();
+  }
+
+  /* ══ 可互动演示 ════════════════════════════════════════════════
+     真截图切换 + 假流水线。截图本身不会动（是真界面），
+     能动的是：切哪个分区、切主题、跑一遍四步进度。
+     ═══════════════════════════════════════════════════════════ */
+  var stage = document.getElementById('demoStage');
+  var skel = document.getElementById('demoSkel');
+  var shots = {
+    full: document.getElementById('shot-full'),
+    run: document.getElementById('shot-run'),
+    accounts: document.getElementById('shot-accounts'),
+    mentions: document.getElementById('shot-mentions'),
+    task: document.getElementById('shot-task'),
+    ai: document.getElementById('shot-ai'),
+    skin: document.getElementById('shot-skin'),
+    log: document.getElementById('shot-log')
+  };
+  var which = document.getElementById('demoWhich');
+  var stateEl = document.getElementById('demoState');
+  var logEl = document.getElementById('demoLog');
+
+  // 等首图加载完再撤骨架屏
+  if (shots.full && skel) {
+    var killSkel = function(){ skel.classList.add('gone'); };
+    if (shots.full.complete) killSkel();
+    else shots.full.addEventListener('load', killSkel);
+    shots.full.addEventListener('error', function(){ skel.textContent = 'SCREENSHOT LOAD FAILED'; });
+  }
+
+  // 分区切换
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip[data-shot]'));
+  chips.forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var key = btn.getAttribute('data-shot');
+      chips.forEach(function(b){ b.setAttribute('aria-pressed', String(b === btn)); });
+      Object.keys(shots).forEach(function(k){
+        var img = shots[k];
+        if (!img) return;
+        if (k === key) img.removeAttribute('hidden');
+        else img.setAttribute('hidden', '');
+      });
+      if (which) which.textContent = btn.textContent.trim();
+      if (logEl) logEl.textContent = '切换分区 → ' + key;
+    });
+  });
+
+  // 演示窗格内主题切换（不影响页面自身主题，只切演示舞台的明暗）
+  var dTheme = document.getElementById('demoThemeBtn');
+  var demoLight = false;
+  if (dTheme) {
+    dTheme.addEventListener('click', function(){
+      demoLight = !demoLight;
+      // 舞台套一层滤镜近似浅色：反色会毁截图，所以改用「提亮 + 降对比」
+      // 更稳妥的做法是准备两套截图；这里先用亮度补偿，标注为近似
+      if (stage) stage.style.filter = demoLight ? 'brightness(1.55) contrast(.9) saturate(.85)' : '';
+      dTheme.setAttribute('aria-pressed', String(demoLight));
+      dTheme.textContent = demoLight ? '◐ 切回深色' : '◐ 切到浅色';
+      if (logEl) logEl.textContent = demoLight ? '演示舞台提亮（近似浅色）' : '演示舞台还原';
+    });
+  }
+
+  // 假流水线
+  var playBtn = document.getElementById('demoPlayBtn');
+  var resetBtn = document.getElementById('demoResetBtn');
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.demo-step'));
+  var STEPS = [
+    ['偏好 → 关键词', '关键词 3 个 · 风格：咸鱼口吻'],
+    ['搜索 → 选片', '命中 12 条 · 挑 3 条未发过'],
+    ['成文 → 裁字', '正文字数 39/40 · 截到分句'],
+    ['发送 → 归档', '评论 x/v2/reply/add · 已入 history.jsonl']
+  ];
+  var timer = null;
+  function clearSteps() {
+    steps.forEach(function(s){ s.classList.remove('on', 'done'); });
+  }
+  if (playBtn) {
+    playBtn.addEventListener('click', function(){
+      if (timer) return;
+      clearSteps();
+      var i = 0;
+      if (stateEl) stateEl.textContent = '运行中';
+      playBtn.textContent = '⏸ 跑动中…';
+      timer = setInterval(function(){
+        if (i > 0) steps[i - 1].classList.replace('on', 'done');
+        if (i >= STEPS.length) {
+          clearInterval(timer); timer = null;
+          if (stateEl) stateEl.textContent = '完成';
+          if (logEl) logEl.textContent = '四步走完 · 用时约 12s（演示）';
+          playBtn.textContent = '▶ 再跑一遍';
+          return;
+        }
+        steps[i].classList.add('on');
+        if (logEl) logEl.textContent = STEPS[i][1];
+        i++;
+      }, 900);
+    });
+  }
+  if (resetBtn) {
+    resetBtn.addEventListener('click', function(){
+      if (timer) { clearInterval(timer); timer = null; }
+      clearSteps();
+      if (stateEl) stateEl.textContent = '待机';
+      if (logEl) logEl.textContent = '—';
+      if (playBtn) playBtn.textContent = '▶ 跑一遍流水线';
+    });
   }
 })();
 </script>
