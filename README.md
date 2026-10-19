@@ -76,6 +76,22 @@ python -m http.server 8000
 # 浏览器打开 http://localhost:8000
 ```
 
+## 工具
+
+`tools/` 下是生成与推送这套页面的脚本，不属于页面本身：
+
+| 文件 | 用途 |
+| --- | --- |
+| `tools/shot-console.mjs` | 起 bili-studio exe + headless Edge CDP，截控制台各分区真图 |
+| `tools/crop-console.py` | 从全页长图里切出单个分区图 |
+| `tools/push-rv.mjs` | 把 `index.html` / 素材 / README / CHANGELOG 推到本仓库 |
+| `tools/push-rv-docs.mjs` | 只补推 README / LICENSE / .gitignore |
+| `tools/enable-pages.mjs` | 开 / 查 GitHub Pages |
+
+```bash
+GH_TOKEN=... node tools/push-rv.mjs
+```
+
 ## License
 
 页面代码见 [LICENSE](./LICENSE)。插画素材版权归原作者，见上。
