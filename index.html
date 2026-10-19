@@ -65,7 +65,8 @@ body{
   font-family:var(--cn);
   font-size:16px;
   line-height:1.75;
-  overflow-x:hidden;
+  /* clip 不生成滚动容器，.bled 的 100vw 出血才不会被重新裁回 */
+  overflow-x:clip;
   -webkit-font-smoothing:antialiased;
 }
 h1,h2,h3,h4,p,ul,ol,figure,table{ margin:0; }
@@ -102,7 +103,9 @@ img{ max-width:100%; display:block; }
   }
 }
 /* ── 布局骨架 ── */
-.wrap{ width:min(1240px,100% - 48px); margin-inline:auto; }
+/* 主区从 1240 → 1100：给左右侧翼让出空间。
+   1440 屏下侧栏 = (1440-1100)/2 = 170px，色块才有地方站。 */
+.wrap{ width:min(1100px,100% - 48px); margin-inline:auto; }
 section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-margin-top:64px; }
 /* 瑞士：区块标题独占整行，左对齐，与内容左边缘严格同线 */
 /* 区块头：两行栅格。
@@ -118,6 +121,29 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
   margin-bottom:clamp(32px,5vw,56px);
   border-bottom:1px solid var(--line-strong);
   padding-bottom:clamp(16px,2vw,24px);
+  position:relative;
+}
+/* 区块头底部右侧的刻度尺：一排不等长竖线，
+   明日方舟拿它当「量具」的视觉残留，专门用来吃掉标题右侧的空白。 */
+.sec-head::after{
+  content:"";
+  position:absolute; right:0; bottom:0;
+  width:min(38%, 380px); height:9px;
+  background:repeating-linear-gradient(90deg,
+    var(--line-strong) 0 1px, transparent 1px 6px,
+    var(--line-strong) 6px 7px, transparent 7px 9px);
+  opacity:.55;
+  pointer-events:none;
+}
+/* 左上角十字准星：定位感 */
+.sec-head::before{
+  content:"";
+  position:absolute; left:-9px; top:-9px;
+  width:9px; height:9px;
+  border-top:1px solid var(--phosphor);
+  border-left:1px solid var(--phosphor);
+  opacity:.7;
+  pointer-events:none;
 }
 .sec-head > .sec-banner{ grid-column:1 / -1; grid-row:1; }
 .sec-head > .sec-num{ grid-column:1; grid-row:2; justify-self:start; align-self:start; }
@@ -181,9 +207,12 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 /* ── HERO ── */
 .hero{ position:relative; padding-top:148px; padding-bottom:clamp(48px,7vw,96px); }
 /* 瑞士：双栏不用 gap 撑开，用栏界（vertical rule）+ 栏内留白 */
-.hero-grid{ display:grid; grid-template-columns:1.15fr .85fr; gap:0; align-items:center; }
-.hero-copy{ padding-right:clamp(28px,5vw,64px); border-right:1px solid var(--line-strong); }
-.hero-right{ padding-left:clamp(28px,5vw,64px); }
+/* align-items:center 会让较短的左栏被垂直居中，右侧那张负 margin 上提的
+   侧挂女仆装又把整列撑高，结果 hero 底下空出一大片。
+   改成 stretch + 左栏自己顶对齐，两栏从同一条顶线开始。 */
+.hero-grid{ display:grid; grid-template-columns:1.15fr .85fr; gap:0; align-items:stretch; }
+.hero-copy{ padding-right:clamp(28px,5vw,64px); border-right:1px solid var(--line-strong); align-self:start; }
+.hero-right{ padding-left:clamp(28px,5vw,64px); align-self:start; }
 .hero-eyebrow{
   font-family:var(--mono); font-size:11px; letter-spacing:.32em;
   color:var(--phosphor); margin-bottom:20px;
@@ -291,10 +320,17 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 /* 副立绘：小一号，贴在主立绘右下，错位不重叠 */
 .hero-art--side{
   width:min(190px,42%);
-  margin:-64px 0 0 auto;
+  /* 侧挂图要「压」在主立绘右下角形成层次，但不能压到 figcaption：
+     主图说明条占 805–842，因此侧挂图顶边必须 ≥ 843。
+     主图底 843 + 负 margin 会让顶边回到 809 并压住说明条，
+     所以这里改成 0：让侧挂图从主图下沿起，只靠横向错位做层次。 */
+  margin:0 0 0 auto;
   padding:10px 10px 0;
   background:linear-gradient(160deg,var(--hull-2) 0%,var(--void-2) 100%);
   box-shadow:-6px -6px 0 var(--glow-soft);
+  /* 滚动曲线固定在 right:22px，侧挂图也靠右，两者会重叠。
+     把图往里收，给曲线让出安全区。 */
+  margin-right:clamp(0px, 4vw, 52px);
 }
 .hero-art--side .hero-art-frame{ aspect-ratio:3/4; }
 .hero-art--side .hero-art-cap{ font-size:9px; }
@@ -368,7 +404,10 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 }
 
 /* 所有 section 都要托住绝对定位的水印/竖栏线 */
-main > section{ position:relative; overflow:hidden; }
+/* overflow-x:clip 而不是 hidden：两者都能防横向滚动，
+   但 hidden 会生成滚动容器、把 .bled 的 100vw 出血重新裁回容器宽，
+   clip 则不建立滚动容器，出血才真的铺到屏幕边缘。 */
+main > section{ position:relative; overflow-x:clip; }
 main > section > .wrap{ position:relative; z-index:1; }
 /* 水印/竖栏线进到 .wrap 里，绝对定位相对 .wrap；z-index 低于内容。
    注意：.wrap 有的本身就是 grid/flex（如 hero-grid），绝对定位的子元素
@@ -545,6 +584,29 @@ main > section > .wrap{ position:relative; z-index:1; }
   display:inline-block; font-family:var(--mono); font-size:9.5px; letter-spacing:.12em;
   color:var(--phosphor); border:1px solid var(--line-strong); padding:2px 7px; margin-top:14px;
 }
+/* ── 卡片上的明日方舟式「设备铭牌」元素 ──
+   右上角编号码 + 底部一条向右延伸的细线。
+   编号贴住卡片边缘，让标题不再是孤立的一行字，
+   而是「编号 → 图标 → 标题 → 正文 → 标签」这条信息链的一环。 */
+.card-code{
+  position:absolute; top:0; right:0;
+  font-family:var(--mono); font-size:8.5px; letter-spacing:.1em;
+  color:var(--txt-dim);
+  background:var(--void);
+  border-left:1px solid var(--line); border-bottom:1px solid var(--line);
+  padding:3px 7px; white-space:nowrap;
+}
+/* 底部：标签 + 一条把剩余宽度吃完的虚线，把卡片底边填实 */
+.card-ft{
+  display:flex; align-items:center; gap:10px; margin-top:14px;
+}
+.card-ft .tag{ margin-top:0; }
+.card-rule{
+  flex:1; height:1px; min-width:20px;
+  background:repeating-linear-gradient(90deg,
+    var(--line-strong) 0 3px, transparent 3px 7px);
+  opacity:.7;
+}
 
 /* ── 流水线节点 ── */
 .pipe{ border:2px solid var(--line-strong); background:var(--hull); }
@@ -569,17 +631,29 @@ main > section > .wrap{ position:relative; z-index:1; }
 .node-meta b{ display:block; color:var(--alert); font-weight:400; }
 /* 流水线栏尾：左侧嵌竖构图头像作锚点，右侧文案 */
 .node-tail{ grid-template-columns:minmax(120px,180px) 1fr auto; background:var(--hull-2); }
+.node-tail{
+  /* 尾部这行第一个格子换成了图，宽度/对齐都不同，单独覆盖 */
+  grid-template-columns:clamp(72px,9vw,110px) 1fr auto;
+  align-items:center;
+}
 .node-tail-art{
   overflow:hidden; border:2px solid var(--line-strong);
+  /* 1008×1118 是接近 9:10 的图，压成正方会把头和脚都切掉，
+     所以按 9:10 的原始比例给高度，用 aspect-ratio 而不是固定 h。 */
+  aspect-ratio:1008 / 1118;
+  width:100%;
   background:
     radial-gradient(ellipse 85% 65% at 50% 108%,var(--glow) 0%,transparent 62%),
     linear-gradient(180deg,var(--hull),var(--void-2));
 }
-.node-tail-art img{ width:100%; height:auto; display:block; }
+.node-tail-art img{ width:100%; height:100%; object-fit:contain; display:block; }
 @media (max-width:720px){ .node-tail{ grid-template-columns:1fr; } .node-tail-art{ display:none; } }
 
 /* ── 分区说明卡（仿应用本体的窗格） ── */
 .panels{ display:grid; grid-template-columns:repeat(3,1fr); gap:0; border:2px solid var(--line-strong); }
+/* 卡片内部用「吃掉剩余高度」的弹性布局：
+   字段表 .panel-fields 撑开，.panel-need 用 margin-top:auto 钉到卡片底部，
+   于是同一行里参差不齐的底边就被拉平了。只是视觉对齐，不动内容。 */
 .panel{
   padding:clamp(16px,1.9vw,22px); border-right:2px solid var(--line-strong);
   border-bottom:2px solid var(--line-strong); background:var(--hull);
@@ -600,7 +674,9 @@ main > section > .wrap{ position:relative; z-index:1; }
 .panel-tag{ font-family:var(--mono); font-size:9px; letter-spacing:.06em; color:var(--txt-dim); }
 .panel-what{ font-size:13px; line-height:1.65; color:var(--txt); }
 .panel-what b{ color:var(--txt-strong); }
-.panel-fields{ display:grid; grid-template-columns:1fr 1fr; gap:0; border:2px solid var(--line-strong); }
+/* flex:1 让字段表吸收同行最高卡片多出来的高度，
+   加上 .panel-need 的 margin-top:auto，底边就对齐了。 */
+.panel-fields{ display:grid; grid-template-columns:1fr 1fr; gap:0; border:2px solid var(--line-strong); flex:1 1 auto; align-content:start; }
 .panel-fields > div{
   display:flex; flex-direction:column; gap:3px; padding:8px 9px;
   border-right:2px solid var(--line-strong); border-bottom:2px solid var(--line-strong);
@@ -794,7 +870,9 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 @media (max-width:720px){ .wm{ font-size:clamp(56px,20vw,96px); opacity:.12; } }
 
 /* ── 2) 点阵：瑞士网格的「填充纹理」 ──
-   用 radial-gradient 铺点，比 SVG 轻；两档密度。 */
+   用 radial-gradient 铺点，比 SVG 轻。
+   注意：这个类之前定义了却全页没用（grep class="dots 为空），
+   所以整套点阵在页面上根本不存在。现在补上四档密度并真正挂到区块里。 */
 .dots{
   position:absolute; inset:0; z-index:0; pointer-events:none;
   background-image:radial-gradient(var(--line-strong) 1px, transparent 1px);
@@ -804,12 +882,96 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   -webkit-mask-image:radial-gradient(ellipse 70% 70% at 50% 50%, #000 0%, transparent 72%);
           mask-image:radial-gradient(ellipse 70% 70% at 50% 50%, #000 0%, transparent 72%);
 }
+/* 密档：9px 网格，远看是一片灰雾，近看是方阵 */
 .dots--dense{ background-size:9px 9px; opacity:.32; }
+/* 超密档：5px，用于小面积填充（卡片角、色块里），别大面积铺会糊 */
+.dots--ultra{ background-size:5px 5px; opacity:.26; }
+/* 疏档：26px 大网格，用来铺大区块，不抢正文 */
+.dots--loose{ background-size:26px 26px; opacity:.5; }
+/* 点大一号：2px 实心点，用在深色大色块上才看得见 */
+.dots--bold{
+  background-image:radial-gradient(var(--phosphor) 1.6px, transparent 1.7px);
+  background-size:18px 18px; opacity:.22;
+}
+/* 边缘渐隐：默认是椭圆蒙版（中间实、四周淡），
+   用于整块区域填充；下面这档改成只往一个方向渐隐，适合做带子。 */
 .dots--band{
   position:relative; inset:auto; height:120px; margin:0;
   -webkit-mask-image:linear-gradient(90deg,#000,transparent);
           mask-image:linear-gradient(90deg,#000,transparent);
 }
+/* 不渐隐：整块均匀铺满，靠 opacity 控制强度 */
+.dots--flat{
+  -webkit-mask-image:none; mask-image:none;
+}
+
+/* ══ 侧翼出血装饰 gutter ══
+   主内容区（.wrap）最大 1240px，在 1440+ 屏上左右各留 100px 空档。
+   瑞士国际主义不会浪费这块：它用「网格留白」，新野兽派则往上面泼色。
+   这里两者折中 —— 一列切成 4 段的窄色块 + 点阵 + 竖排编号，
+   左右镜像但错开高度，避免看起来像对称的边框。
+   只在宽屏显示（<1200px 时 .wrap 已接近撑满，没有空档可占）。 */
+/* ⚠️ 这里的关键认识：.gutter 是 .wrap 的子元素，inset:0 的「100%」= .wrap 的宽度，
+   不是视口宽度。所以它永远被关在主内容区里，左右两侧的空白当初根本就没被覆盖到。
+   想占满视口，必须用「负外边距 + 视口宽度」把 .gutter 撑出去：
+     left:50% → margin-left:-50vw → width:100vw
+   （不能直接用 left:-50vw：.wrap 是居中的，-50vw 会跑到视口左边界之外。） */
+.gutter{
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  display:none;
+  left:50%; right:auto;
+  margin-left:-50vw;
+  width:100vw;
+}
+@media (min-width:1200px){ .gutter{ display:block; } }
+
+/* ⚠️ 这里的宽度算错过一次：原来写 `calc((100% - min(1240px,92vw)) / 2)`。
+   .gutter 是 .wrap 的子元素，100% 指的是 .wrap 的宽度（1240px），
+   而 .wrap 本身已经限死了 max-width，所以算出来是负数 → 宽度 0 → 整块没渲染。
+   侧栏宽度必须相对**视口**算：.wrap 是居中的，两侧各留 (100vw - wrapW)/2。
+   再加 max(0px, ...) 兜住窄屏（虽然 <1200px 时整个 .gutter 都隐藏了）。 */
+.gutter .g-col{
+  position:absolute; top:0; bottom:0;
+  width:max(0px, calc((100vw - min(1100px, 100vw - 48px)) / 2));
+  overflow:hidden;
+}
+.gutter .g-col--l{ left:0; }
+.gutter .g-col--r{ right:0; }
+
+/* 色块：从列边缘切出一条，永远贴着屏幕外侧 */
+/* 色块：贴着屏幕最外侧那一半，绝不碰 .wrap 的内容。
+   宽度写 58% 是硬性边界：170px 侧栏 → 色块约 99px，
+   剩下的 71px 是缓冲带，卡片边缘永远压不到色块上。
+   （之前写 100% 必然和卡片重叠，被 .wrap 盖住只剩一条边。） */
+.gutter{ --gb-h:clamp(120px, 16vh, 220px); }
+.gutter .g-block{
+  position:absolute;
+  width:58%;
+  height:var(--gb-h);
+  background:var(--phosphor);
+  opacity:.26;
+}
+.gutter .g-block--ink{ background:#4fc3f7; opacity:.20; }
+/* 浅色主题反过来：「亮青」在白底上会糊掉，这里必须用海军蓝实色块。
+   也就是说侧翼色块的主题对应关系是反相的，不是简单套同一个变量。 */
+:root[data-theme="light"] .gutter .g-block{ background:#0b2a4a; opacity:.22; }
+:root[data-theme="light"] .gutter .g-block--ink{ background:#0b2a4a; opacity:.92; }
+.gutter .g-col--l .g-block{ left:0; }
+.gutter .g-col--r .g-block{ right:0; }
+.gutter .g-block--alert{ background:var(--alert); opacity:.85; }
+
+/* 点阵块：一块小面积密点，压在色块上 */
+.gutter .g-dots{
+  position:absolute;
+  width:58%; height:200px;
+  background-image:radial-gradient(var(--phosphor) 1.7px, transparent 1.8px);
+  background-size:9px 9px;
+  opacity:.6;
+}
+.gutter .g-col--l .g-dots{ left:0; }
+.gutter .g-col--r .g-dots{ right:0; }
+
+
 /* 点阵当「数据刻度尺」：一行小方块组成的 measurement bar */
 .dotrule{
   display:flex; align-items:center; gap:6px; flex-wrap:wrap;
@@ -821,14 +983,328 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   background:var(--line-strong);
 }
 .dotrule i.on{ background:var(--phosphor); box-shadow:0 0 6px var(--glow); }
+
+/* Hero 左栏的四步流程清单：
+   瑞士风——编号左对齐成窄列，动词用大字重的粗体，说明用等宽小字。
+   每行一条 1px 横线分隔，不做卡片不做圆角，靠对齐和字号制造节奏。 */
+.hero-flow{
+  list-style:none; margin:34px 0 0; padding:0;
+  border-top:1px solid var(--line-strong);
+}
+.hero-flow li{
+  display:grid;
+  grid-template-columns:34px minmax(64px,auto) 1fr;
+  align-items:baseline;
+  gap:14px;
+  padding:11px 0;
+  border-bottom:1px solid var(--line);
+}
+.hero-flow .hf-k{
+  font-family:var(--mono); font-size:10px; letter-spacing:.12em;
+  color:var(--phosphor);
+}
+.hero-flow .hf-v{
+  font-family:var(--disp); font-size:17px; letter-spacing:-.01em;
+  color:var(--txt-strong); white-space:nowrap;
+}
+.hero-flow .hf-u{
+  font-family:var(--mono); font-size:11px; letter-spacing:.02em;
+  color:var(--txt-dim); line-height:1.5;
+}
+/* 前置条件提示：左侧一条警示色竖线，不用背景块，避免和下方 gauges 抢重量 */
+.hero-gate{
+  margin:22px 0 0;
+  padding-left:14px;
+  border-left:3px solid var(--alert);
+  font-family:var(--mono); font-size:11.5px; line-height:1.75;
+  color:var(--txt-dim);
+  /* 等宽小字在深底上本来就细，靠字距和行距把它从「噪点」拉成「可读」 */
+  letter-spacing:.015em;
+  text-wrap:pretty;
+}
+.hero-gate b{ color:var(--txt-strong); font-weight:600; }
+.hero-gate code{
+  font-family:var(--mono); font-size:11px;
+  color:var(--phosphor); background:var(--glow-soft);
+  padding:1px 5px; white-space:nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   大色块 / 大色条系统
+   ────────────────────────────────────────────────────────────────
+   取三家的长处，各有分工，不许互相打架：
+     · NASA-PUNK → 取「警示条纹 + 荧光色 + 刻度线」，用在色条上
+     · 新野兽派  → 取「硬投影 + 粗描边 + 锯齿撕裂 + 斜切」，用在色块上
+     · 国际主义  → 取「出血横带 + 巨型铅字 + 严格网格」，用在版面上
+   所有色块都不吃点击（pointer-events:none），纯装饰层；
+   高度用 clamp() 锁死，不会被内容撑爆。
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 出血横带：突破 .wrap 的 1240px 限制，整屏宽铺满 ──
+   ⚠️ 必须用 width:100vw + 负 margin + 反向位移三件套，
+   只写 margin-left:calc(50% - 50vw) 在父容器有 padding 时会偏。
+   100vw 在桌面端包含了滚动条宽度，所以再减掉 scrollbar 用 clip 兜底。 */
+.bled{
+  --bled-w:100vw;
+  position:relative;
+  width:var(--bled-w);
+  left:50%;
+  margin-left:calc(var(--bled-w) / -2);
+  margin-block:clamp(32px,5vw,64px);
+}
+
+/* ── 1) 警示条纹条（NASA-PUNK 的工业感） ── */
+.band{
+  position:relative;
+  height:clamp(10px,1.5vw,16px);
+  background:repeating-linear-gradient(
+    135deg,
+    var(--phosphor) 0 14px,
+    transparent 14px 28px
+  );
+  opacity:.55;
+  pointer-events:none;
+}
+.band--alert{ background:repeating-linear-gradient(135deg, var(--alert) 0 14px, transparent 14px 28px); opacity:.6; }
+.band--thick{ height:clamp(20px,3vw,34px); opacity:.85; }
+/* 实心色条：比条纹更重，当成「版面分割线」 */
+.band--solid{ background:var(--phosphor); opacity:.9; height:clamp(8px,1.1vw,12px); }
+.band--ink{ background:var(--alert); height:clamp(14px,2vw,22px); }
+
+/* ── 2) 巨幅色块（新野兽派的硬块） ── */
+.slab{
+  position:relative;
+  /* ⚠️ 这里不能用 var(--phosphor)：
+     色块要的是「海军蓝底 + 浅字」，所以两个都钉死成常量：
+     底色 #0b2a4a（海军蓝）+ 字 #eaf3fb（浅）。
+     若用 var(--phosphor)，浅色主题下它会翻成亮青，
+     浅底浅字直接消失；深色主题下又是亮青，跟主人要的藏蓝不符。 */
+  background:#0b2a4a;
+  color:#eaf3fb;
+  padding:clamp(24px,4vw,52px) clamp(20px,4vw,56px);
+  border:3px solid #4fc3f7;
+  box-shadow:12px 12px 0 #b01a1a;       /* 硬投影：野兽派的签名 */
+  isolation:isolate;
+}
+.slab .slab-kicker{ color:rgba(234,243,251,.72); }
+.slab--alert{ background:var(--alert); color:#fff; box-shadow:12px 12px 0 var(--phosphor); }
+.slab--ink{ background:var(--hull); color:var(--txt-strong); border-color:var(--phosphor); box-shadow:12px 12px 0 var(--phosphor); }
+.slab--tilt{ transform:rotate(-1.1deg); }
+.slab--tilt-r{ transform:rotate(1.1deg); }
+/* 色块里的巨型铅字：
+   中文不像英文能靠 letter-spacing 硬压，字数一多就撑出容器，
+   所以用 container 宽度反推字号（cqi），再留一点呼吸边距。 */
+.slab-big{
+  font-family:var(--disp); font-weight:900;
+  font-size:clamp(24px,6.2vw,92px);
+  line-height:.9; letter-spacing:-.02em;
+  margin:0;
+  overflow-wrap:anywhere;      /* 实在放不下就换行，绝不溢出 */
+  text-wrap:balance;
+}
+.slab-kicker{
+  font-family:var(--mono); font-size:11px; letter-spacing:.24em;
+  text-transform:uppercase; opacity:.75; margin-bottom:.5em;
+}
+
+/* ── 3) 斜切带：用 clip-path 切出野兽派的角度 ──
+   要点：底边必须收成一个尖，两边对称，才叫「倒三角」。
+   之前写 polygon(0 0, 100% 0, 100% 62%, 0 100%)：
+   底边从右下 62% 一路斜到左下 100%，切出来是个斜梯形，
+   右半段被削平，所以看起来「只有半边」。
+   现在是左右完全对称的等腰倒三角：左右两个底角收在 y=100%，
+   底边中点升到 y=58%，形成一个朝下的 V。 */
+.chevron{
+  position:relative; height:clamp(72px,8vw,112px);
+  background:var(--alert);
+  /* 主人 2026-10-19 定：不要 V 形箭头，要「等宽大色条」。
+     原来 clip-path 挖掉下半截，只剩一条窄字带顶在一大片空红上，很怪。
+     现在改回规整矩形，新野兽派的味道靠 3px 描边 + 硬投影撑，不靠裁切。 */
+  display:flex; align-items:center;
+  border-block:3px solid var(--void);
+  /* 出血带是 100vw 满宽的，内边距不能只写死 56px，
+     否则和 .wrap 的 1240px 对不齐。用「(100vw - 1240)/2 + 边距」推。 */
+  padding-inline:max(clamp(20px,4vw,56px), calc((100vw - 1100px) / 2 + 18px));
+  overflow:hidden;
+}
+/* 下半截是 V 形的两条斜边，文字只放在上半段，整体上移避开斜边 */
+.chevron > *{ transform:none; }
+/* 反向：只镜像斜切的「方向」，尖仍然朝下。
+   注意——之前这里写的是尖朝上的三角形，用在 #safety 的区块头条上，
+   结果那条带变成「上斜下平」，主人一眼就看出不对。
+   现在 --rev 只改文字避让的方向，clip-path 与正向完全一致。 */
+.chevron--rev{ border-block:3px solid var(--void); }
+.chevron--rev > *{ transform:none; }
+/* 作为区块「头条」时的位置修正：紧贴区块上沿出血，
+   自身高度靠 margin 吃掉 section 的 padding，不叠在标题上。 */
+.chevron--lead{
+  margin-top:calc(clamp(64px,9vw,132px) * -0.62);
+  margin-bottom:clamp(28px,4vw,48px);
+}
+/* 计数块：右侧的深色小方，和红色形成「警戒 + 读数」的 HUD 关系 */
+.chevron-count{
+  margin-left:auto; flex:none;
+  display:flex; align-items:baseline; gap:6px;
+  padding:10px 16px;
+  background:var(--void);
+  border:2px solid var(--void);
+  color:var(--alert);
+  font-family:var(--mono); line-height:1;
+}
+.chevron-count b{ font-size:clamp(18px,2.2cqw,34px); font-weight:800; letter-spacing:-.02em; }
+.chevron-count i{ font-style:normal; font-size:10px; letter-spacing:.16em; opacity:.8; }
+/* 有了右侧计数块，文字不再需要 nowrap 撑满整行 */
+.chevron-txt{ margin-right:clamp(12px,2vw,28px); }
+.chevron-txt{
+  font-family:var(--disp); font-weight:900;
+  /* 文字被右边缘硬裁的根治办法：不再拍脑袋给字号，改成
+     「让 .chevron 成为容器查询上下文，字号按 cqw 等比缩放」。
+     .chevron 宽 = 100vw（出血），去掉左右 padding 后的可用宽度
+     约等于 (100vw - 2*max(56, (100vw-1240)/2+18))。
+     用 cqw 时单位基准是 .chevron 的内容盒宽度，所以直接给一个
+     经验比例即可自适应；再用 clamp 兜住上下限，窄屏也不会缩成蚂蚁。 */
+  font-size:clamp(20px, 4.15cqw, 76px);
+  line-height:.9; letter-spacing:-.03em;
+  text-transform:uppercase; color:var(--void); white-space:nowrap;
+  /* nowrap + 自动缩字号之后，理论上不会再溢出；
+     但字体没加载时度量会偏，所以留一道 min-width 兜底不换行。 */
+  max-width:100%;
+  overflow:hidden; text-overflow:clip;
+}
+/* 容器查询上下文：让 1cqw = .chevron 宽度的 1% */
+.chevron{ container-type:inline-size; }
+
+/* ── 4) 锯齿撕边：新野兽派的「纸被撕开」 ──
+   这条 CSS 踩了五次坑，全部写在这，别再绕：
+   · 线性渐变                          → 只能切方牙
+   · conic-gradient 非正方形 tile       → 被拉成平行四边形
+   · conic 色标 #000 0deg 90deg         → 90deg 是绝对值，扇形只到 90°
+   · conic 原点 at 50% 0                → 270° 剩余扇形跨 tile 边界，相邻互盖
+   · SVG 未写 preserveAspectRatio='none' → 浏览器按 meet 居中等比缩放，
+                                          在小 tile 里退化成斜块
+   最终：SVG + preserveAspectRatio='none'，且 mask-size 宽高必须相等
+   （元素 height 用同一个变量），否则三角形被横向拉伸。 */
+.torn{
+  --tooth:clamp(20px,2.6vw,30px);
+  height:var(--tooth);
+  background-color:var(--phosphor);
+  margin:0;
+  /* 用 base64 而不是 url("...utf8,<svg ...>")：
+     后者里的 # 会被当成 URL fragment 截断，导致 SVG 解析失败，
+     浏览器退化成把整块当纯色/斜纹处理 —— 这就是「一排平行四边形」的来源。 */
+  --torn-svg:url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgcHJlc2VydmVBc3BlY3RSYXRpbz0ibm9uZSI+PHBhdGggZD0iTTAgMCBIMTAwIEw1MCAxMDAgWiIgZmlsbD0iYmxhY2siLz48L3N2Zz4=");
+  -webkit-mask-image:var(--torn-svg);
+  -webkit-mask-size:var(--tooth) var(--tooth);
+  -webkit-mask-repeat:repeat-x;
+  -webkit-mask-position:0 0;
+  mask-image:var(--torn-svg);
+  mask-size:var(--tooth) var(--tooth);
+  mask-repeat:repeat-x;
+  mask-position:0 0;
+  pointer-events:none;
+}
+
+/* ── 5) 巨型数字色块：国际主义的「数字即版面」 ── */
+.numboxes{
+  display:grid; grid-template-columns:repeat(3,1fr);
+  gap:clamp(12px,2vw,22px);
+  margin-bottom:clamp(28px,4vw,48px);
+}
+.numbox{
+  position:relative;
+  border:3px solid var(--line-strong);
+  background:var(--hull-2);
+  padding:clamp(18px,2.6vw,32px);
+  overflow:hidden;
+  min-height:clamp(110px,13vw,168px);
+}
+.numbox::after{
+  content:attr(data-n);
+  position:absolute; right:-.04em; bottom:-.26em;
+  font-family:var(--disp); font-weight:900;
+  font-size:clamp(72px,13vw,180px); line-height:.7;
+  color:transparent; -webkit-text-stroke:2px var(--phosphor);
+  opacity:.22; pointer-events:none;
+}
+/* ── 明日方舟式信息头：编号码 + 英文名 + 条形码，三件挤在一行 ──
+   这一行的作用是把大标题「扣」在信息上：
+   上面有码、下面有标签条，标题被夹在中间，而不是飘在空白里。 */
+.numbox-hd{
+  display:flex; align-items:center; gap:10px;
+  padding-bottom:10px; border-bottom:1px solid var(--line);
+}
+.nb-code{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.1em;
+  color:var(--stencil-bg); background:var(--phosphor);
+  padding:2px 6px; white-space:nowrap;
+}
+.numbox-k{
+  font-family:var(--mono); font-size:10px; letter-spacing:.2em;
+  text-transform:uppercase; color:var(--phosphor);
+  white-space:nowrap;
+}
+/* 条形码：一排不等宽竖线，纯装饰，用来填满行尾的空白 */
+.nb-bar{
+  flex:1; height:11px; min-width:40px;
+  background:repeating-linear-gradient(90deg,
+    var(--phosphor) 0 1px, transparent 1px 3px,
+    var(--phosphor) 3px 5px, transparent 5px 6px,
+    var(--phosphor) 6px 7px, transparent 7px 10px);
+  opacity:.55;
+}
+.numbox-v{
+  font-family:var(--disp); font-size:clamp(22px,3.4vw,42px); line-height:1;
+  letter-spacing:-.03em; color:var(--txt-strong); margin-top:.34em;
+}
+/* 底部标签条：把标题和具体能力项目串起来，
+   让「六项能力」不是一句空话，而是下面真列了六项。 */
+.numbox-ft{
+  display:flex; flex-wrap:wrap; gap:5px;
+  margin-top:14px; padding-top:10px;
+  border-top:1px dashed var(--line);
+}
+/* 数据刻度条：12 格，亮的格子数 = 实际数量。
+   「零遥测」那张全部用警示红点划掉，视觉上直接表达「一格都没用」。 */
+.numbox-meter{
+  display:flex; gap:4px; margin-top:12px; height:8px;
+}
+.numbox-meter i{
+  flex:1; height:100%; background:var(--line-strong); opacity:.35;
+}
+.numbox-meter i.on{
+  background:var(--phosphor); opacity:1; box-shadow:0 0 6px var(--glow);
+}
+.numbox-meter i.off{
+  background:var(--alert); opacity:.5;
+  /* 划掉：用斜线纹表示「不适用」 */
+  background-image:repeating-linear-gradient(45deg,
+    var(--void) 0 1px, transparent 1px 3px);
+}
+.numbox-ft span{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.04em;
+  color:var(--txt-dim);
+  border:1px solid var(--line-strong);
+  padding:2px 6px; white-space:nowrap;
+}
+
+@media (max-width:720px){
+  .slab{ box-shadow:7px 7px 0 var(--alert); }
+  .slab--alert{ box-shadow:7px 7px 0 var(--phosphor); }
+  .slab--ink{ box-shadow:7px 7px 0 var(--phosphor); }
+  .chevron{ height:64px; }
+  .chevron-txt{ font-size:20px; }
+  .numboxes{ grid-template-columns:1fr; }
+}
 .dotrule b{ color:var(--phosphor); font-weight:400; }
 
 /* ── 3) 线条：瑞士平面设计的骨架 ──
-   粗横线、细分隔、竖栏线、斜切边。这些是版面的「承重墙」。 */
-.rule{ width:100%; height:2px; background:var(--line-strong); margin:0; border:0; }
-.rule--thin{ height:1px; background:var(--line); }
-.rule--thick{ height:6px; background:var(--phosphor); box-shadow:0 0 18px var(--glow); }
-.rule--short{ width:72px; }
+   粗横线、细分隔、竖栏线、斜切边。这些是版面的「承重墙」。
+   ⚠️ 类名必须带 ruler- 前缀：早期用的是 .rule，和「边界」区块的
+   .rule 卡片（第 675 行）撞名，装饰线那条规则把卡片压成了 2px 高。 */
+.ruler{ width:100%; height:2px; background:var(--line-strong); margin:0; border:0; }
+.ruler--thin{ height:1px; background:var(--line); }
+.ruler--thick{ height:6px; background:var(--phosphor); box-shadow:0 0 18px var(--glow); }
+.ruler--short{ width:72px; }
 /* 三段式「瑞士分割尺」：一条粗线 + 一条细线 + 一条短线，模拟比例尺 */
 .rule-scale{
   display:grid; grid-template-columns:2fr 1fr .5fr; gap:0;
@@ -982,6 +1458,7 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <!-- ═══ HERO ═══ -->
 <section class="hero" id="top">
   <div class="wrap hero-grid">
+    <div class="gutter" aria-hidden="true"><div class="g-col g-col--l"><i class="g-block g-block--ink" style="top:0;height:var(--gb-h)"></i><i class="g-dots" style="top:calc(var(--gb-h) + 28px)"></i></div><div class="g-col g-col--r"><i class="g-dots" style="bottom:calc(var(--gb-h) + 28px)"></i><i class="g-block g-block--alert" style="bottom:0;height:var(--gb-h)"></i></div></div>
     <div class="wm wm--right wm--solid" aria-hidden="true">WHALE</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="hero-copy">
@@ -989,9 +1466,8 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       <h1 class="t-hero">蓝色大肥鱼<em class="t-hero-em">自动化搬史</em></h1>
       <div class="hero-baseline" aria-hidden="true"><i></i><i></i><b>BASELINE / 12-COL GRID</b></div>
       <p class="hero-sub">
-        一台跑在本机的 B 站自动化控制台。<b>AI 读你的偏好</b>、想关键词、搜视频、写问候，
-        然后<b>替你发出去</b>——评论区或私信，两种频道。
-        没有云端账号，没有遥测，cookie 只存在你自己的 <b>data/config.json</b> 里。
+        本机跑的 B 站控制台。<b>AI 读偏好、搜视频、写问候</b>，替你发到评论区或私信。
+        无云端账号，无遥测，cookie 只留在 <b>data/config.json</b>。
       </p>
       <div class="hero-facts">
         <div class="hero-fact"><div class="k">默认模型</div><div class="v">DeepSeek</div><div class="u">v4-flash · 本机调用</div></div>
@@ -1005,8 +1481,21 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
       <div class="hero-cta">
         <a class="btn" href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO" target="_blank" rel="noopener">↗ 源码仓库</a>
-        <a class="btn ghost" href="https://github.com/luowenjie114514-dotcom/releases" target="_blank" rel="noopener">⤓ 下载 exe</a>
+        <a class="btn ghost" href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO/releases" target="_blank" rel="noopener">⤓ 下载 exe</a>
       </div>
+
+      <!-- 左栏比右栏（主立绘 695 + 侧挂图 272）矮 350px，
+           这里补一块「一次任务全流程」的四步清单，既是真信息，
+           也把左栏的高度撑到和右栏齐平，消掉底下的空档。 -->
+      <ol class="hero-flow">
+        <li><span class="hf-k">01</span><span class="hf-v">读偏好</span><span class="hf-u">分区 + 关键词，偏好由你手写</span></li>
+        <li><span class="hf-k">02</span><span class="hf-v">搜视频</span><span class="hf-u">B 站公开搜索，按发布日排序取新片</span></li>
+        <li><span class="hf-k">03</span><span class="hf-v">写问候</span><span class="hf-u">AI 转述「我今天刷到什么」，不表演</span></li>
+        <li><span class="hf-k">04</span><span class="hf-v">发出去</span><span class="hf-u">评论 / 私信，@ 名单逐个点名</span></li>
+      </ol>
+      <!-- 跑之前必须知道的一件事：cookie 会过期。
+           把它放在 CTA 正下方而不是塞进正文，是因为它是「动手前」的门槛。 -->
+      <p class="hero-gate"><b>跑之前</b>：先在 Edge 里登录好 B 站账号，把 cookie 粘进「账户」分区并点一次测活。cookie 过期会直接报 <code>-101</code>，不会静默失败。</p>
     </div>
     <div class="hero-right">
       <figure class="hero-art">
@@ -1040,11 +1529,23 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   <div class="hero-chip" aria-hidden="true">
     <img src="assets/whale-avatar.webp" alt="" width="512" height="512">
   </div>
+
+  <!-- 出血警示条 + 斜切带：Hero 收尾，把读者推进下一屏。
+       chevron 文案配「LOCAL ONLY · NO CLOUD · NO TELEMETRY · LOCAL ONLY」太长，
+       在 1440 宽下会被右边缘裁掉。缩字号 + 去掉末尾重复那半句，
+       视觉上仍是一个连续的警示带，但不再断字。 -->
+  <div class="bled band band--alert band--thick" aria-hidden="true"></div>
+  <div class="bled chevron" aria-hidden="true">
+    <span class="chevron-txt">LOCAL ONLY · NO CLOUD · NO TELEMETRY</span>
+  </div>
 </section>
 
 <!-- ═══ 00 可互动演示 ═══ -->
 <section id="demo">
   <div class="wrap">
+      <div class="gutter" aria-hidden="true"><div class="g-col g-col--l"><i class="g-block g-block--ink" style="top:0;height:var(--gb-h)"></i><i class="g-dots" style="top:calc(var(--gb-h) + 28px)"></i></div><div class="g-col g-col--r"><i class="g-dots" style="bottom:calc(var(--gb-h) + 28px)"></i><i class="g-block g-block--alert" style="bottom:0;height:var(--gb-h)"></i></div></div>
+    <!-- 点阵：疏档铺区块底，压在内容下面 -->
+    <div class="dots dots--loose" aria-hidden="true"></div>
     <div class="wm wm--right" aria-hidden="true">DEMO</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
@@ -1075,10 +1576,6 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
           <button class="chip" data-shot="log" aria-pressed="false">日志</button>
         </div>
         <div class="spacer"></div>
-        <div class="grp">
-          <span class="lbl">配色</span>
-          <button class="chip" id="demoThemeBtn" aria-pressed="false">◐ 切到浅色</button>
-        </div>
       </div>
 
       <!-- 舞台：真截图在这里切换 -->
@@ -1119,6 +1616,8 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <!-- ═══ 01 功能 ═══ -->
 <section id="overview">
   <div class="wrap">
+      <div class="gutter" aria-hidden="true"><div class="g-col g-col--l"><i class="g-block g-block--ink" style="top:0;height:var(--gb-h)"></i><i class="g-dots" style="top:calc(var(--gb-h) + 28px)"></i></div><div class="g-col g-col--r"><i class="g-dots" style="bottom:calc(var(--gb-h) + 28px)"></i><i class="g-block g-block--alert" style="bottom:0;height:var(--gb-h)"></i></div></div>
+    <div class="dots dots--loose" aria-hidden="true"></div>
     <div class="wm wm--left" aria-hidden="true">SPEC</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
@@ -1133,42 +1632,92 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
         <p class="sec-sub">六项能力。<b>全部配置经网页完成</b>，写回 config.json，跨设备不丢。</p>
       </div>
     </div>
+
+    <!-- 巨型数字色块条：国际主义「数字即版面」。
+         三个数把「能力规模」直接砸到眼睛上，比一段形容句有效。
+         参考明日方舟的版面：大数字不是背景装饰，而是和编号码、条码、
+         刻度挤成一团的信息块 —— 标题被信息包住，而不是浮在空白里。 -->
+    <div class="numboxes reveal">
+      <div class="numbox" data-n="6">
+        <div class="numbox-hd">
+          <span class="nb-code">RI-01</span>
+          <span class="numbox-k">CAPABILITIES</span>
+          <span class="nb-bar" aria-hidden="true"></span>
+        </div>
+        <div class="numbox-v">六项能力</div>
+        <div class="numbox-meter" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="numbox-ft">
+          <span>账户</span><span>@ 名单</span><span>偏好</span><span>搜索</span><span>成文</span><span>调度</span>
+        </div>
+      </div>
+      <div class="numbox" data-n="2">
+        <div class="numbox-hd">
+          <span class="nb-code">RI-02</span>
+          <span class="numbox-k">CHANNELS</span>
+          <span class="nb-bar" aria-hidden="true"></span>
+        </div>
+        <div class="numbox-v">两种频道</div>
+        <div class="numbox-meter" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="numbox-ft">
+          <span>评论区</span><span>私信</span>
+        </div>
+      </div>
+      <div class="numbox" data-n="0">
+        <div class="numbox-hd">
+          <span class="nb-code">RI-03</span>
+          <span class="numbox-k">TELEMETRY</span>
+          <span class="nb-bar" aria-hidden="true"></span>
+        </div>
+        <div class="numbox-v">零遥测</div>
+        <div class="numbox-meter" aria-hidden="true"><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i><i class="off"></i></div>
+        <div class="numbox-ft">
+          <span>无上报</span><span>无云账号</span><span>无埋点</span>
+        </div>
+      </div>
+    </div>
+    <div class="bled torn" aria-hidden="true"></div>
     <div class="cards">
       <div class="card reveal">
+        <span class="card-code">ACC-01</span>
         <div class="card-ico">◍</div>
         <h3>多账户</h3>
         <p>粘贴 cookie 即入档，可存多个号。任务开始前验活，失效直接中止。</p>
-        <span class="tag">账户</span>
+        <div class="card-ft"><span class="tag">账户</span><span class="card-rule"></span></div>
       </div>
       <div class="card reveal">
+        <span class="card-code">MEN-02</span>
         <div class="card-ico">◎</div>
         <h3>@ 名单</h3>
         <p>按 UID 精准定位，不靠昵称撞运气。列表可增删。</p>
-        <span class="tag">名单</span>
+        <div class="card-ft"><span class="tag">名单</span><span class="card-rule"></span></div>
       </div>
       <div class="card reveal">
+        <span class="card-code">PREF-03</span>
         <div class="card-ico">⌬</div>
         <h3>偏好 → 关键词</h3>
         <p>大白话写喜好，AI 拆成搜索词。词表可手改。</p>
-        <span class="tag">分析</span>
+        <div class="card-ft"><span class="tag">分析</span><span class="card-rule"></span></div>
       </div>
       <div class="card reveal">
+        <span class="card-code">TASK-04</span>
         <div class="card-ico">▤</div>
         <h3>搜索 → 成文</h3>
         <p>翻搜索结果挑新片，AI 写问候。评论与私信两套口吻。</p>
-        <span class="tag">成文</span>
+        <div class="card-ft"><span class="tag">成文</span><span class="card-rule"></span></div>
       </div>
       <div class="card reveal">
+        <span class="card-code">SCH-05</span>
         <div class="card-ico">▮</div>
         <h3>执行 / 定时</h3>
         <p>手点即跑，或挂定时。调度在服务端，关网页继续跑。</p>
-        <span class="tag">调度</span>
+        <div class="card-ft"><span class="tag">调度</span><span class="card-rule"></span></div>
       </div>
       <div class="card reveal">
+        <span class="card-code">LOG-06</span>
         <div class="card-ico">◐</div>
         <h3>干跑 / 日志</h3>
         <p>干跑只生成不发送。日志分级着色，小窗常驻。</p>
-        <span class="tag">干跑</span>
+        <div class="card-ft"><span class="tag">干跑</span><span class="card-rule"></span></div>
       </div>
     </div>
   </div>
@@ -1177,6 +1726,8 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <!-- ═══ 02 流水线 ═══ -->
 <section id="pipeline">
   <div class="wrap">
+      <div class="gutter" aria-hidden="true"><div class="g-col g-col--l"><i class="g-block g-block--ink" style="top:0;height:var(--gb-h)"></i><i class="g-dots" style="top:calc(var(--gb-h) + 28px)"></i></div><div class="g-col g-col--r"><i class="g-dots" style="bottom:calc(var(--gb-h) + 28px)"></i><i class="g-block g-block--alert" style="bottom:0;height:var(--gb-h)"></i></div></div>
+    <div class="dots dots--dense" aria-hidden="true"></div>
     <div class="wm wm--right" aria-hidden="true">FLOW</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
@@ -1194,6 +1745,7 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   </div>
   <!-- 瑞士：节点栏横跨整宽，右端嵌竖构图头像作栏尾锚点 -->
   <div class="wrap">
+    <div class="dots dots--loose" aria-hidden="true"></div>
     <div class="pipe reveal">
       <div class="node">
         <div class="node-num">01</div>
@@ -1238,12 +1790,21 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
         <div class="node-meta">图源<b>蓝色大肥鱼.com</b></div>
       </div>
     </div>
+
+    <!-- 巨幅色块：把「四步」这个数字本身做成版面主体 -->
+    <div class="bled slab reveal" style="margin-block:clamp(36px,5vw,64px)">
+      <div class="slab-kicker">PIPELINE / FOUR STEPS</div>
+      <p class="slab-big">偏好 → 搜索 → 成文 → 发送</p>
+    </div>
+    <div class="bled band" aria-hidden="true"></div>
   </div>
 </section>
 
 <!-- ═══ 03 分区 ═══ -->
 <section id="deck">
   <div class="wrap">
+      <div class="gutter" aria-hidden="true"><div class="g-col g-col--l"><i class="g-block g-block--ink" style="top:0;height:var(--gb-h)"></i><i class="g-dots" style="top:calc(var(--gb-h) + 28px)"></i></div><div class="g-col g-col--r"><i class="g-dots" style="bottom:calc(var(--gb-h) + 28px)"></i><i class="g-block g-block--alert" style="bottom:0;height:var(--gb-h)"></i></div></div>
+    <div class="dots dots--bold dots--flat" aria-hidden="true"></div>
     <div class="wm wm--left" aria-hidden="true">PANELS</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
@@ -1401,6 +1962,8 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <!-- ═══ 05 接口 ═══ -->
 <section id="interface">
   <div class="wrap">
+      <div class="gutter" aria-hidden="true"><div class="g-col g-col--l"><i class="g-block g-block--ink" style="top:0;height:var(--gb-h)"></i><i class="g-dots" style="top:calc(var(--gb-h) + 28px)"></i></div><div class="g-col g-col--r"><i class="g-dots" style="bottom:calc(var(--gb-h) + 28px)"></i><i class="g-block g-block--alert" style="bottom:0;height:var(--gb-h)"></i></div></div>
+    <div class="dots dots--loose" aria-hidden="true"></div>
     <div class="wm wm--right" aria-hidden="true">API</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
@@ -1451,11 +2014,23 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
+  <div class="bled band band--solid" aria-hidden="true"></div>
 </section>
 
 <!-- ═══ 07 边界 ═══ -->
 <section id="safety">
+  <!-- 警示斜切带放在区块顶部、正文之上，但用 padding 把正文推开，
+       不让它盖住区块头。之前用 position:absolute;top:0 直接压在标题上。 -->
+  <div class="bled chevron chevron--rev chevron--lead" aria-hidden="true">
+    <span class="chevron-txt">STOP · THROTTLE · MAX 10 / DAY</span>
+    <!-- 右侧计数块：给色条一个内容锚点，
+         否则整条只是纯装饰的红，眼睛没地方落。 -->
+    <span class="chevron-count" aria-hidden="true">
+      <b>10</b><i>/ DAY</i>
+    </span>
+  </div>
   <div class="wrap">
+    <div class="dots dots--dense" aria-hidden="true"></div>
     <div class="wm wm--left" aria-hidden="true">LIMIT</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
@@ -1512,12 +2087,17 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
         </div>
       </div>
     </div>
+
+    <!-- 收尾色条：边界区块的「结论」，用粗横条压住整节 -->
+    <div class="bled band band--ink" aria-hidden="true"></div>
   </div>
 </section>
 
 <!-- ═══ 08 版本 ═══ -->
 <section id="log">
   <div class="wrap">
+      <div class="gutter" aria-hidden="true"><div class="g-col g-col--l"><i class="g-block g-block--ink" style="top:0;height:var(--gb-h)"></i><i class="g-dots" style="top:calc(var(--gb-h) + 28px)"></i></div><div class="g-col g-col--r"><i class="g-dots" style="bottom:calc(var(--gb-h) + 28px)"></i><i class="g-block g-block--alert" style="bottom:0;height:var(--gb-h)"></i></div></div>
+    <div class="dots dots--loose" aria-hidden="true"></div>
     <div class="wm wm--right" aria-hidden="true">LOG</div>
     <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
@@ -1597,8 +2177,8 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
     <div class="foot-links">
       <a href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO" target="_blank" rel="noopener">↗ 源码仓库</a>
       <a href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO#readme" target="_blank" rel="noopener">↗ README</a>
-      <a href="https://github.com/luowenjie114514-dotcom/blob/main/CHANGELOG.md" target="_blank" rel="noopener">↗ 更新日志</a>
-      <a href="https://github.com/luowenjie114514-dotcom/issues" target="_blank" rel="noopener">↗ 提 issue</a>
+      <a href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO/blob/main/CHANGELOG.md" target="_blank" rel="noopener">↗ 更新日志</a>
+      <a href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO/issues" target="_blank" rel="noopener">↗ 提 issue</a>
     </div>
   </div>
   <div class="wrap foot-note">
@@ -1627,7 +2207,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
     apply(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
   });
 
-  /* ── 进场动画（IntersectionObserver，逐项错开） ── */
+  /* ── 进场动画（IntersectionObserver，逐项错开） ──
+     threshold 是个坑：它按「目标元素自身高度的百分比」算，
+     所以一个 1352px 高的演示区放在 900px 视口里，最多只能露出 66%，
+     要凑够 0.12 当然可以——但 rootMargin 的 -8% 和元素进场时机一叠加，
+     实测经常拿不到回调，元素卡在 opacity:0。
+     表现就是：那个区块整片黑掉、里面的图片「没了」。
+     修法：阈值统一压到 0.01（露一点就算），并在加载后补一道兜底扫描。 */
   var items = document.querySelectorAll('.reveal');
   if (!('IntersectionObserver' in window)) {
     items.forEach(function(el){ el.classList.add('in'); });
@@ -1641,8 +2227,18 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
         el.classList.add('in');
         io.unobserve(el);
       });
-    }, { threshold: 0.12, rootMargin: '0px 0px -8% 0px' });
+    }, { threshold: 0.01, rootMargin: '0px 0px -6% 0px' });
     items.forEach(function(el){ io.observe(el); });
+    /* 兜底：加载 900ms 后，凡是已经进入过视口却仍没 .in 的直接补上，
+       防止某些浏览器首帧布局未稳时漏判，导致区块永远黑着。 */
+    setTimeout(function(){
+      var vh2 = window.innerHeight || 800;
+      items.forEach(function(el){
+        if (el.classList.contains('in')) return;
+        var r = el.getBoundingClientRect();
+        if (r.top < vh2 * 1.2) el.classList.add('in');
+      });
+    }, 900);
   }
 
   /* ── 顶栏当前区块高亮 ── */
@@ -1741,13 +2337,103 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 
     /* ── 滚轮 ──
        deltaMode: 0=像素 1=行 2=页。Firefox 常见 1，必须换算，
-       否则同样滚一格在 Firefox 里只有 Chrome 的 1/16 距离。 */
+       否则同样滚一格在 Firefox 里只有 Chrome 的 1/16 距离。
+       ══ 辅助翻页（page assist） ══
+       主人的要求：往下滚一点，就自动帮你把这一屏翻完；往上同理。
+       实现要点：
+         1. 不是「一滚就跳一屏」——那样会很吵。而是先累积滚轮意向：
+            同一方向、间隔 < 220ms 的滚动连续累加；
+         2. 累计超过「起手阈值」后才接管，接管时把目标设成
+            下一个「安全停顿点」而不是死板的 +1 屏；
+         3. 安全停顿点 = 当前视口里所有「块级单元」（.card / .rule /
+            .panel / .node / 表格行 …）的下边缘，取第一个超过视口 62%
+            位置的。这样停下来时不会把一张卡片切成两半；
+         4. 反向滚动立刻清零意向并取消接管，所以「往上翻」同样生效；
+         5. 滚轮持续猛滚时不再叠加辅助，交给原生惯性，避免越帮越快。
+       ═══════════════════════════════════════════════════════════ */
     var LINE = 16, PAGE = 0.9;
     function px(delta, mode){
       if (mode === 1) return delta * LINE;
       if (mode === 2) return delta * window.innerHeight * PAGE;
       return delta;
     }
+
+    /* 辅助翻页参数 */
+    var ASSIST = {
+      arm: 70,          // 起手阈值：同向累计超过这么多像素才开始接管
+      window: 220,      // 意向记忆窗口（ms）：超过这个间隔就认为是一次新的滚动
+      maxRun: 0.55,     // 单次辅助最多补多少屏，防「一滚到底」
+      stopRatio: 0.62   // 停靠线：视口高度的 62% 处，第一个越过它的单元边界
+    };
+    var assistDir = 0, assistAcc = 0, assistT = 0, assistFired = 0;
+
+    /* 收集当前视口附近可以当「停靠点」的单元下边缘。
+       类名必须和实际 DOM 对上（.tl-item 是版本时间线条目，
+       接口表用的是原生 <tr>），写错的话辅助翻页会退化成死板整屏。 */
+    var UNIT_SEL = '.card, .rule, .panel, .node, .demo-shot, .tl-item, tbody tr, .hero-fact';
+    function stopPoints(){
+      var vh = window.innerHeight;
+      var sy = window.scrollY;
+      var pts = [];
+      var nodes = document.querySelectorAll(UNIT_SEL);
+      for (var i = 0; i < nodes.length; i++) {
+        var r = nodes[i].getBoundingClientRect();
+        if (r.height < 24) continue;                 // 太薄的（分割线之类）不当停靠点
+        var bottom = r.bottom + sy;
+        if (bottom > sy + vh * 0.3 && bottom < sy + vh * 1.9) pts.push(bottom);
+      }
+      // 章节标题也是天然的翻页边界
+      var heads = document.querySelectorAll('.sec-head');
+      for (var j = 0; j < heads.length; j++) {
+        var hr = heads[j].getBoundingClientRect();
+        var hb = hr.bottom + sy;
+        if (hb > sy + vh * 0.3 && hb < sy + vh * 1.9) pts.push(hb);
+      }
+      pts.sort(function(a, b){ return a - b; });
+      return pts;
+    }
+
+    /* 给定方向与当前目标位置，返回「下一屏」应该停在哪 */
+    function nextStop(dir){
+      var vh = window.innerHeight;
+      var base = target;
+      var line = base + vh * ASSIST.stopRatio * dir;   // 停靠线在页面上的位置
+      var pts = stopPoints();
+      if (dir > 0) {
+        for (var i = 0; i < pts.length; i++) if (pts[i] > line) return pts[i];
+        return base + vh;                              // 没有单元边界就整屏
+      } else {
+        for (var k = pts.length - 1; k >= 0; k--) if (pts[k] < line) return pts[k] - vh * 0.1;
+        return base - vh;
+      }
+    }
+
+    function assist(dy){
+      var now = performance.now();
+      var dir = dy > 0 ? 1 : -1;
+      // 反向 或 隔太久 → 重新计意向
+      if (dir !== assistDir || now - assistT > ASSIST.window) { assistDir = dir; assistAcc = 0; }
+      assistAcc += Math.abs(dy);
+      assistT = now;
+
+      if (assistAcc < ASSIST.arm) return false;        // 还没攒够，正常滚
+      if (assistFired && now - assistFired < ASSIST.window) return false; // 刚帮过，别连着帮
+
+      var vh = window.innerHeight;
+      var stop = nextStop(dir);
+      var delta = stop - target;
+      // 单次辅助上限
+      var cap = vh * ASSIST.maxRun;
+      if (Math.abs(delta) > cap) delta = Math.sign(delta) * cap;
+      if (Math.abs(delta) < vh * 0.12) return false;   // 太小就不补了，感知不到
+
+      assistFired = now;
+      assistAcc = 0;                                    // 帮完清零，等下一次起手
+      target = clampY(target + delta);
+      kick();
+      return true;
+    }
+
     window.addEventListener('wheel', function(e){
       if (e.ctrlKey) return;                                    // 浏览器缩放，绝不拦
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;      // 横向手势放行
@@ -1759,7 +2445,17 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
         el = el.parentElement;
       }
       e.preventDefault();
-      target = clampY(target + px(e.deltaY, e.deltaMode));
+      var dy = px(e.deltaY, e.deltaMode);
+      // 猛滚（单次 delta 特别大）说明用户自己在快速翻，辅助让路
+      var fast = Math.abs(dy) > window.innerHeight * 0.42;
+      if (fast) {
+        assistAcc = 0;
+        target = clampY(target + dy);
+        kick();
+        return;
+      }
+      if (assist(dy)) return;                                   // 辅助接管了这一下
+      target = clampY(target + dy);
       kick();
     }, { passive: false });
 
@@ -2029,21 +2725,6 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       if (logEl) logEl.textContent = '切换分区 → ' + key;
     });
   });
-
-  // 演示窗格内主题切换（不影响页面自身主题，只切演示舞台的明暗）
-  var dTheme = document.getElementById('demoThemeBtn');
-  var demoLight = false;
-  if (dTheme) {
-    dTheme.addEventListener('click', function(){
-      demoLight = !demoLight;
-      // 舞台套一层滤镜近似浅色：反色会毁截图，所以改用「提亮 + 降对比」
-      // 更稳妥的做法是准备两套截图；这里先用亮度补偿，标注为近似
-      if (stage) stage.style.filter = demoLight ? 'brightness(1.55) contrast(.9) saturate(.85)' : '';
-      dTheme.setAttribute('aria-pressed', String(demoLight));
-      dTheme.textContent = demoLight ? '◐ 切回深色' : '◐ 切到浅色';
-      if (logEl) logEl.textContent = demoLight ? '演示舞台提亮（近似浅色）' : '演示舞台还原';
-    });
-  }
 
   // 假流水线
   var playBtn = document.getElementById('demoPlayBtn');
