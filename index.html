@@ -56,7 +56,7 @@ html[data-theme="light"]{
 
 *{ box-sizing:border-box; }
 /* 平滑滚动：只对「锚点跳转」这类程序化滚动生效，滚轮/触摸的即时响应不受影响 */
-html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+html{ scroll-behavior:auto; -webkit-text-size-adjust:100%; }
 @media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
 body{
   margin:0;
@@ -105,7 +105,23 @@ img{ max-width:100%; display:block; }
 .wrap{ width:min(1240px,100% - 48px); margin-inline:auto; }
 section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-margin-top:64px; }
 /* 瑞士：区块标题独占整行，左对齐，与内容左边缘严格同线 */
-.sec-head{ display:grid; grid-template-columns:auto 1fr; gap:clamp(16px,3vw,40px); align-items:baseline; margin-bottom:clamp(32px,5vw,56px); border-bottom:1px solid var(--line-strong); padding-bottom:clamp(16px,2vw,24px); }
+/* 区块头：两行栅格。
+   第 1 行 = 版面条带（跨两列）；第 2 行 = 编号(auto) + 标题块(1fr)。
+   瑞士国际主义的阅读顺序：先看到横线标尺，再看编号与标题。 */
+.sec-head{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  grid-template-rows:auto auto;
+  grid-auto-rows:auto;
+  gap:clamp(10px,1.8vw,18px) clamp(16px,3vw,40px);
+  align-items:baseline;
+  margin-bottom:clamp(32px,5vw,56px);
+  border-bottom:1px solid var(--line-strong);
+  padding-bottom:clamp(16px,2vw,24px);
+}
+.sec-head > .sec-banner{ grid-column:1 / -1; grid-row:1; }
+.sec-head > .sec-num{ grid-column:1; grid-row:2; justify-self:start; align-self:start; }
+.sec-head > :not(.sec-num):not(.sec-banner){ grid-column:2; grid-row:2; }
 
 /* ── 顶栏 HUD ── */
 .hud{
@@ -163,7 +179,7 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 }
 
 /* ── HERO ── */
-.hero{ padding-top:148px; padding-bottom:clamp(48px,7vw,96px); }
+.hero{ position:relative; padding-top:148px; padding-bottom:clamp(48px,7vw,96px); }
 /* 瑞士：双栏不用 gap 撑开，用栏界（vertical rule）+ 栏内留白 */
 .hero-grid{ display:grid; grid-template-columns:1.15fr .85fr; gap:0; align-items:center; }
 .hero-copy{ padding-right:clamp(28px,5vw,64px); border-right:1px solid var(--line-strong); }
@@ -186,6 +202,7 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
   text-transform:uppercase;
   margin:0;
 }
+.t-hero-em{ display:block; color:var(--phosphor); }
 .hero h1 em{
   font-style:normal; color:var(--phosphor); display:block;
   font-size:clamp(30px,5.2vw,64px);
@@ -259,6 +276,12 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
   aspect-ratio:2/3;
 }
 .hero-art-frame img{ width:100%; height:100%; object-fit:cover; object-position:50% 22%; }
+/* 视差层：内层图 inset:-9% 放大 18% 给位移留余量，外层 overflow:hidden 裁掉多出部分，
+   于是「框不动、图在跑」。用 offset-path 式位移（transform）不触发重排。 */
+.hero-art-frame{ position:relative; }
+.hero-art-frame .par--art{ position:absolute; inset:-9%; display:block; z-index:0; }
+.hero-art-frame .par--art img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%; }
+.hero-art-frame > img{ position:relative; z-index:1; }
 .hero-art-cap{
   display:flex; justify-content:space-between; gap:12px;
   font-family:var(--mono); font-size:10px; letter-spacing:.1em;
@@ -344,76 +367,50 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
   color:var(--phosphor); white-space:nowrap;
 }
 
-/* 右下角浮动导览钮：滚过一屏后才出现。
-   两个作用：↑ 回顶，↓ 去下一屏。键盘同样能触发（见 JS 的 PageUp/PageDown）。 */
-.fab-nav{
-  position:fixed; right:22px; bottom:26px; z-index:115;
-  display:none; flex-direction:column; gap:0;
-  border:1px solid var(--line-strong);
-  background:var(--hull-2);
-  opacity:0; transform:translateY(10px); pointer-events:none;
-  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1), border-color .2s;
-}
-@media (min-width:1081px){ .fab-nav{ display:flex; } }
-.fab-nav.show{ opacity:1; transform:none; pointer-events:auto; }
-.fab-nav:hover{ border-color:var(--phosphor); }
-.fab-nav button{
-  width:38px; height:34px;
-  font-family:var(--mono); font-size:13px; line-height:1;
-  color:var(--txt-dim); background:transparent; cursor:pointer;
-  border:0; border-radius:0;
-  transition:color .18s, background .18s;
-}
-.fab-nav button:hover{ color:var(--phosphor); background:var(--glow-soft); }
-.fab-nav button + button{ border-top:1px solid var(--line-strong); }
-.fab-nav button:disabled{ opacity:.3; cursor:default; }
-.fab-nav button:disabled:hover{ color:var(--txt-dim); background:transparent; }
-@media (prefers-reduced-motion:reduce){
-  .fab-nav{ transition:none; transform:none; }
+/* 所有 section 都要托住绝对定位的水印/竖栏线 */
+main > section{ position:relative; overflow:hidden; }
+main > section > .wrap{ position:relative; z-index:1; }
+/* 水印/竖栏线进到 .wrap 里，绝对定位相对 .wrap；z-index 低于内容。
+   注意：.wrap 有的本身就是 grid/flex（如 hero-grid），绝对定位的子元素
+   虽然退出常规流但仍是 grid item，所以必须显式 grid-area/order 屏蔽。 */
+.wrap > .wm, .wrap > .vrules{
+  position:absolute; z-index:0;
+  grid-area:1 / 1 / 2 / -1;      /* 不占独立网格行 */
+  align-self:start; justify-self:start;
 }
 
-/* ── 翻页引导（section 之间）──────────────────────────────────────
-   机械滚动的毛病是「滚到哪儿算哪儿」。每个区块结尾挂一条 NEXT 导轨：
-   告诉主人下一屏叫什么、讲什么、点一下直接过去。
-   做法是在每个 </section> 前插一个 <a class="next-rail">，
-   href 指向下一个 section，所以没有 JS 也能跳；JS 只负责
-   在视口里时让它从底部「探出头」，以及更新编号/标题文案。
-   只在宽屏显示：窄屏本身一屏一块，导轨收益低还挡内容。
-   ──────────────────────────────────────────────────────────────── */
-.next-rail{
-  position:absolute; left:50%; bottom:clamp(10px,2.4vw,26px);
-  transform:translate(-50%,14px);
-  display:none; align-items:center; gap:12px;
-  padding:9px 14px;
-  border:1px solid var(--line-strong);
-  background:var(--hull-2);
-  color:var(--txt-dim); text-decoration:none;
-  font-family:var(--mono); font-size:11px; letter-spacing:.06em;
-  opacity:0; pointer-events:none;
-  transition:opacity .35s ease, transform .35s cubic-bezier(.22,1,.36,1), border-color .2s, color .2s;
-  z-index:5;
+/* ── 版面条带：横跨整行的粗线段，塞英文大写 + 右侧小注 ──
+   瑞士国际主义的招牌结构：一条横线，把信息切成上下两层。 */
+.sec-banner{
+  grid-column:1 / -1;
+  display:flex; align-items:baseline; gap:14px;
+  border-top:3px solid var(--txt-strong);
+  border-bottom:1px solid var(--line-strong);
+  padding:8px 0 7px;
+  margin-bottom:6px;
 }
-@media (min-width:1081px){ .next-rail{ display:inline-flex; } }
-/* JS 探测到「这个区块快滚完了」时加 .peek：真正可点 */
-.next-rail.peek{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
-.next-rail:hover{ color:var(--phosphor); border-color:var(--phosphor); }
-.next-rail .nr-k{
-  color:var(--stencil-bg); background:var(--phosphor);
-  padding:2px 7px; font-size:10px; letter-spacing:.1em;
+.sec-banner .sb-num{
+  font-family:var(--mono); font-size:10px; letter-spacing:.2em;
+  color:var(--phosphor); text-transform:uppercase; white-space:nowrap;
 }
-.next-rail .nr-label{ color:var(--txt-dim); }
-.next-rail:hover .nr-label{ color:var(--phosphor); }
-.next-rail .nr-title{ color:var(--txt-strong); font-family:var(--disp); font-size:13px; letter-spacing:.04em; text-transform:uppercase; }
-.next-rail .nr-arrow{ color:var(--phosphor); }
-@media (prefers-reduced-motion:reduce){
-  .next-rail{ transition:none; transform:translate(-50%,0); }
+.sec-banner .sb-big{
+  font-family:var(--disp); font-size:clamp(15px,2vw,22px);
+  letter-spacing:-.01em; text-transform:uppercase;
+  color:var(--txt-strong); line-height:1;
 }
+.sec-banner .sb-sub{
+  font-family:var(--mono); font-size:9.5px; letter-spacing:.16em;
+  color:var(--txt-dim); text-transform:uppercase;
+  margin-left:auto; white-space:nowrap;
+}
+@media (max-width:720px){ .sec-banner .sb-sub{ display:none; } }
 
 /* ── 区块标题（瑞士风：编号 + 大标题 + 说明，严格网格） ── */
 .sec-num{
   font-family:var(--mono); font-size:12px; letter-spacing:.1em;
   color:var(--stencil-bg); background:var(--phosphor);
   padding:6px 12px; border:2px solid var(--phosphor);
+  justify-self:start; align-self:start; white-space:nowrap;
 }
 .sec-title{
   font-family:var(--disp); font-size:clamp(26px,4vw,46px);
@@ -754,6 +751,152 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   .sec-head .sec-num,.sec-head .sec-title,.sec-head .sec-sub{ transform:none; opacity:1; }
 }
 
+
+/* ══ 国际主义瑞士风视觉系统 ══════════════════════════════════════
+   三件事：超大字（typographic scale）、点阵（dot matrix）、线条（rule grid）。
+   全部走 CSS 变量 + 伪元素，不加图片，不加 JS。 */
+
+/* ── 1) 超大字：瑞士风排版阶梯 ──
+   clamp 保证小屏不炸、大屏够狠；负字距是国际主义的标志性手法；
+   行高钉在 .82~.9 让大写字母能密排成「铅字块」。 */
+.t-hero{
+  font-family:var(--disp); font-weight:900;
+  font-size:clamp(56px,11.5vw,168px);
+  line-height:.84; letter-spacing:-.045em;
+  text-transform:uppercase;
+}
+.t-mega{
+  font-family:var(--disp); font-weight:900;
+  font-size:clamp(38px,7vw,96px);
+  line-height:.88; letter-spacing:-.035em;
+  text-transform:uppercase;
+}
+/* 巨型水印字：绝对定位在区块背景里，巨大、极淡、不可选，
+   让每个区块都有一块「视觉锚」而不占版面。
+   注意：水印在 .wrap 内部、z-index:0，正文在 z-index:1 之上，
+   所以水印永远在文字下面；但内容卡片本身是透明底，字会透上来，
+   因此把水印再压淡一档，只作为「气氛」而不是可读文字。
+   尺寸也要克制：字越大越容易和卡片打架，压到 15vw/160px 封顶。 */
+.wm{
+  position:absolute; z-index:0; pointer-events:none; user-select:none;
+  font-family:var(--disp); font-weight:900;
+  font-size:clamp(80px,13vw,168px);
+  line-height:.78; letter-spacing:-.05em; text-transform:uppercase;
+  color:transparent; -webkit-text-stroke:1px var(--line);
+  opacity:.16; white-space:nowrap;
+  overflow:hidden; max-width:100%;
+}
+.wm--solid{ -webkit-text-stroke:0; color:var(--glow-soft); opacity:.08; }
+/* 右上 / 左下：贴边但不溢出裁切框。
+   左下那档要避开卡片区，往上抬到区块中部偏下，只露出下半截。 */
+.wm--right{ right:0; top:0; }
+.wm--left{ left:0; bottom:-.12em; }
+@media (max-width:720px){ .wm{ font-size:clamp(56px,20vw,96px); opacity:.12; } }
+
+/* ── 2) 点阵：瑞士网格的「填充纹理」 ──
+   用 radial-gradient 铺点，比 SVG 轻；两档密度。 */
+.dots{
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  background-image:radial-gradient(var(--line-strong) 1px, transparent 1px);
+  background-size:16px 16px;
+  background-position:center;
+  opacity:.45;
+  -webkit-mask-image:radial-gradient(ellipse 70% 70% at 50% 50%, #000 0%, transparent 72%);
+          mask-image:radial-gradient(ellipse 70% 70% at 50% 50%, #000 0%, transparent 72%);
+}
+.dots--dense{ background-size:9px 9px; opacity:.32; }
+.dots--band{
+  position:relative; inset:auto; height:120px; margin:0;
+  -webkit-mask-image:linear-gradient(90deg,#000,transparent);
+          mask-image:linear-gradient(90deg,#000,transparent);
+}
+/* 点阵当「数据刻度尺」：一行小方块组成的 measurement bar */
+.dotrule{
+  display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+  font-family:var(--mono); font-size:10px; letter-spacing:.14em;
+  color:var(--txt-dim); text-transform:uppercase;
+}
+.dotrule i{
+  display:block; width:6px; height:6px;
+  background:var(--line-strong);
+}
+.dotrule i.on{ background:var(--phosphor); box-shadow:0 0 6px var(--glow); }
+.dotrule b{ color:var(--phosphor); font-weight:400; }
+
+/* ── 3) 线条：瑞士平面设计的骨架 ──
+   粗横线、细分隔、竖栏线、斜切边。这些是版面的「承重墙」。 */
+.rule{ width:100%; height:2px; background:var(--line-strong); margin:0; border:0; }
+.rule--thin{ height:1px; background:var(--line); }
+.rule--thick{ height:6px; background:var(--phosphor); box-shadow:0 0 18px var(--glow); }
+.rule--short{ width:72px; }
+/* 三段式「瑞士分割尺」：一条粗线 + 一条细线 + 一条短线，模拟比例尺 */
+.rule-scale{
+  display:grid; grid-template-columns:2fr 1fr .5fr; gap:0;
+  height:8px; margin:0;
+}
+.rule-scale span{ background:var(--line-strong); }
+.rule-scale span:nth-child(2){ background:var(--phosphor); }
+.rule-scale span:nth-child(3){ background:var(--line); }
+/* 竖栏线：给内容区加"栏"的暗示，瑞士风的核心 */
+.vrules{
+  position:absolute; inset:0; z-index:0; pointer-events:none;
+  display:grid; grid-template-columns:repeat(4,1fr);
+}
+.vrules span{ border-right:1px solid var(--line); }
+.vrules span:last-child{ border-right:0; }
+@media (max-width:1080px){ .vrules{ grid-template-columns:repeat(2,1fr); } }
+/* 角标线：L 形的角，标出区块边界 */
+.corner{
+  position:absolute; width:22px; height:22px; z-index:2; pointer-events:none;
+  border-color:var(--line-strong); border-style:solid; border-width:0;
+}
+.corner--tl{ left:0; top:0; border-left-width:2px; border-top-width:2px; }
+.corner--tr{ right:0; top:0; border-right-width:2px; border-top-width:2px; }
+.corner--bl{ left:0; bottom:0; border-left-width:2px; border-bottom-width:2px; }
+.corner--br{ right:0; bottom:0; border-right-width:2px; border-bottom-width:2px; }
+
+/* ── 4) 版面条带：整屏宽的黑色大条幅，塞巨型字母 ── */
+.banner{
+  position:relative; overflow:hidden;
+  border-top:2px solid var(--line-strong);
+  border-bottom:2px solid var(--line-strong);
+  background:var(--hull);
+  padding:clamp(18px,3vw,34px) clamp(16px,4vw,64px);
+  display:flex; align-items:baseline; gap:clamp(14px,3vw,40px);
+  flex-wrap:wrap;
+}
+.banner .b-num{
+  font-family:var(--mono); font-size:11px; letter-spacing:.22em;
+  color:var(--phosphor); text-transform:uppercase;
+}
+.banner .b-big{
+  font-family:var(--disp); font-weight:900;
+  font-size:clamp(28px,5.5vw,64px); line-height:.9; letter-spacing:-.03em;
+  color:var(--txt-strong); text-transform:uppercase;
+}
+.banner .b-big em{ font-style:normal; color:var(--phosphor); }
+.banner .b-sub{
+  font-family:var(--mono); font-size:11px; letter-spacing:.12em;
+  color:var(--txt-dim); text-transform:uppercase; margin-left:auto;
+}
+
+/* ── 5) 数据条：瑞士风的「一览表」，粗线分隔 ── */
+.datastrip{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  border-top:2px solid var(--line-strong);
+}
+.datastrip > div{
+  padding:14px 16px; border-right:1px solid var(--line);
+  border-bottom:2px solid var(--line-strong);
+}
+.datastrip > div:last-child{ border-right:0; }
+.datastrip .dk{ font-family:var(--mono); font-size:9.5px; letter-spacing:.18em; color:var(--txt-dim); text-transform:uppercase; }
+.datastrip .dv{ font-family:var(--disp); font-size:clamp(20px,2.6vw,30px); color:var(--phosphor); line-height:1.05; margin-top:4px; letter-spacing:-.02em; }
+.datastrip .du{ font-family:var(--mono); font-size:10px; color:var(--txt-dim); }
+
+/* ── 6) 动效开关：视差层 ── */
+[data-par]{ will-change:transform; }
+
 /* ── 响应式 ── */
 @media (max-width:1080px){
   .hero-grid{ grid-template-columns:1fr; }
@@ -782,7 +925,11 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   .gauge:last-child{ border-bottom:0; }
   .node{ grid-template-columns:56px 1fr; }
   .node-meta{ grid-column:2; text-align:left; }
-  .sec-head{ grid-template-columns:1fr; }
+  /* 窄屏：编号与标题同一行，条带仍在最上方 */
+  .sec-head{ grid-template-columns:auto 1fr; }
+  .sec-head > .sec-banner{ grid-row:1; }
+  .sec-head > .sec-num{ grid-column:1; grid-row:2; }
+  .sec-head > :not(.sec-num):not(.sec-banner){ grid-column:2; grid-row:2; }
 }
 @media (prefers-reduced-motion:reduce){
   *{ animation:none !important; transition:none !important; }
@@ -835,9 +982,11 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <!-- ═══ HERO ═══ -->
 <section class="hero" id="top">
   <div class="wrap hero-grid">
+    <div class="wm wm--right wm--solid" aria-hidden="true">WHALE</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="hero-copy">
       <div class="hero-eyebrow">LOCAL BUILD · v1.5.4 · 2026-10-19</div>
-      <h1>蓝色大肥鱼<em>自动化搬史</em></h1>
+      <h1 class="t-hero">蓝色大肥鱼<em class="t-hero-em">自动化搬史</em></h1>
       <div class="hero-baseline" aria-hidden="true"><i></i><i></i><b>BASELINE / 12-COL GRID</b></div>
       <p class="hero-sub">
         一台跑在本机的 B 站自动化控制台。<b>AI 读你的偏好</b>、想关键词、搜视频、写问候，
@@ -849,6 +998,11 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
         <div class="hero-fact"><div class="k">发布通道</div><div class="v">2</div><div class="u">评论区 / 私信</div></div>
         <div class="hero-fact alert"><div class="k">数据外传</div><div class="v">0</div><div class="u">无遥测 · 无上报</div></div>
       </div>
+      <div class="dotrule" aria-hidden="true">
+        <i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i>
+        <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+        <b>7 / 16 MODULES ACTIVE</b>
+      </div>
       <div class="hero-cta">
         <a class="btn" href="https://github.com/luowenjie114514-dotcom/BILI-STUDIO" target="_blank" rel="noopener">↗ 源码仓库</a>
         <a class="btn ghost" href="https://github.com/luowenjie114514-dotcom/releases" target="_blank" rel="noopener">⤓ 下载 exe</a>
@@ -858,6 +1012,9 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       <figure class="hero-art">
         <div class="hero-ruler" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
         <div class="hero-art-frame">
+          <span class="par par--art" data-par="depth:0.16" aria-hidden="true">
+            <img src="assets/whale-main.webp" alt="" width="1024" height="1536">
+          </span>
           <img src="assets/whale-main.webp" alt="鲸鱼娘立绘：蓝色长发、鱼鳍耳饰、白蓝女仆装" width="1024" height="1536">
         </div>
         <figcaption class="hero-art-cap">
@@ -867,6 +1024,9 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </figure>
       <figure class="hero-art hero-art--side">
         <div class="hero-art-frame">
+          <span class="par par--art" data-par="depth:0.26" aria-hidden="true">
+            <img src="assets/whale-maid.webp" alt="" width="696" height="1150">
+          </span>
           <img src="assets/whale-maid.webp" alt="鲸鱼娘女仆装版本" width="696" height="1150">
         </div>
         <figcaption class="hero-art-cap">
@@ -885,8 +1045,15 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 <!-- ═══ 00 可互动演示 ═══ -->
 <section id="demo">
   <div class="wrap">
+    <div class="wm wm--right" aria-hidden="true">DEMO</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
       <div class="sec-num">00</div>
+      <div class="sec-banner" aria-hidden="true">
+        <span class="sb-num">00 / DEMO</span>
+        <span class="sb-big">DEMO</span>
+        <span class="sb-sub">INTERACTIVE / REAL SCREENS</span>
+      </div>
       <div>
         <h2 class="sec-title">演示</h2>
         <p class="sec-sub">下面每一张都是<b>真跑出来的界面截图</b>，不是示意图。切分区、切配色、跑一遍流水线——都可以点。</p>
@@ -947,20 +1114,20 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
-
-  <a class="next-rail" href="#overview">
-    <span class="nr-k">02</span>
-    <span class="nr-label">下一屏</span>
-    <span class="nr-title">功能</span>
-    <span class="nr-arrow">&#8595;</span>
-  </a>
 </section>
 
 <!-- ═══ 01 功能 ═══ -->
 <section id="overview">
   <div class="wrap">
+    <div class="wm wm--left" aria-hidden="true">SPEC</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
       <div class="sec-num">01</div>
+      <div class="sec-banner" aria-hidden="true">
+        <span class="sb-num">01 / SPEC</span>
+        <span class="sb-big">SPEC</span>
+        <span class="sb-sub">WHAT IT DOES</span>
+      </div>
       <div>
         <h2 class="sec-title">功能</h2>
         <p class="sec-sub">六项能力。<b>全部配置经网页完成</b>，写回 config.json，跨设备不丢。</p>
@@ -1005,20 +1172,20 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
-
-  <a class="next-rail" href="#pipeline">
-    <span class="nr-k">03</span>
-    <span class="nr-label">下一屏</span>
-    <span class="nr-title">流水线</span>
-    <span class="nr-arrow">&#8595;</span>
-  </a>
 </section>
 
 <!-- ═══ 02 流水线 ═══ -->
 <section id="pipeline">
   <div class="wrap">
+    <div class="wm wm--right" aria-hidden="true">FLOW</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
       <div class="sec-num">02</div>
+      <div class="sec-banner" aria-hidden="true">
+        <span class="sb-num">02 / FLOW</span>
+        <span class="sb-big">FLOW</span>
+        <span class="sb-sub">RUN PIPELINE</span>
+      </div>
       <div>
         <h2 class="sec-title">流程</h2>
         <p class="sec-sub">从一句喜好到一条发出的消息。<b>任一步失败即中止</b>，原因写入日志。</p>
@@ -1072,20 +1239,20 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
-
-  <a class="next-rail" href="#deck">
-    <span class="nr-k">04</span>
-    <span class="nr-label">下一屏</span>
-    <span class="nr-title">分区</span>
-    <span class="nr-arrow">&#8595;</span>
-  </a>
 </section>
 
 <!-- ═══ 03 分区 ═══ -->
 <section id="deck">
   <div class="wrap">
+    <div class="wm wm--left" aria-hidden="true">PANELS</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
       <div class="sec-num">03</div>
+      <div class="sec-banner" aria-hidden="true">
+        <span class="sb-num">03 / PANELS</span>
+        <span class="sb-big">PANELS</span>
+        <span class="sb-sub">ELEVEN WINDOWS</span>
+      </div>
       <div>
         <h2 class="sec-title">分区</h2>
         <p class="sec-sub">十一段窗格，可拖拽 / 可收起 / 可关闭。每段负责什么、跑之前要满足什么，都写在下面。</p>
@@ -1229,20 +1396,20 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 
     </div>
   </div>
-
-  <a class="next-rail" href="#interface">
-    <span class="nr-k">05</span>
-    <span class="nr-label">下一屏</span>
-    <span class="nr-title">接口</span>
-    <span class="nr-arrow">&#8595;</span>
-  </a>
 </section>
 
 <!-- ═══ 05 接口 ═══ -->
 <section id="interface">
   <div class="wrap">
+    <div class="wm wm--right" aria-hidden="true">API</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
       <div class="sec-num">04</div>
+      <div class="sec-banner" aria-hidden="true">
+        <span class="sb-num">04 / API</span>
+        <span class="sb-big">API</span>
+        <span class="sb-sub">ENDPOINTS</span>
+      </div>
       <div>
         <h2 class="sec-title">接口</h2>
         <p class="sec-sub">无框架，<code>ROUTES</code> 表手写分发。全部仅监听 <b>127.0.0.1</b>。</p>
@@ -1284,20 +1451,20 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
-
-  <a class="next-rail" href="#safety">
-    <span class="nr-k">06</span>
-    <span class="nr-label">下一屏</span>
-    <span class="nr-title">边界</span>
-    <span class="nr-arrow">&#8595;</span>
-  </a>
 </section>
 
 <!-- ═══ 07 边界 ═══ -->
 <section id="safety">
   <div class="wrap">
+    <div class="wm wm--left" aria-hidden="true">LIMIT</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
       <div class="sec-num">05</div>
+      <div class="sec-banner" aria-hidden="true">
+        <span class="sb-num">05 / BOUNDARY</span>
+        <span class="sb-big">BOUNDARY</span>
+        <span class="sb-sub">WHAT IT WILL NOT DO</span>
+      </div>
       <div>
         <h2 class="sec-title">边界</h2>
         <p class="sec-sub">放慢节奏、前置拦截，而非绕过限制。</p>
@@ -1346,20 +1513,20 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
-
-  <a class="next-rail" href="#log">
-    <span class="nr-k">07</span>
-    <span class="nr-label">下一屏</span>
-    <span class="nr-title">版本</span>
-    <span class="nr-arrow">&#8595;</span>
-  </a>
 </section>
 
 <!-- ═══ 08 版本 ═══ -->
 <section id="log">
   <div class="wrap">
+    <div class="wm wm--right" aria-hidden="true">LOG</div>
+    <div class="vrules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
     <div class="sec-head reveal">
       <div class="sec-num">06</div>
+      <div class="sec-banner" aria-hidden="true">
+        <span class="sb-num">06 / CHANGELOG</span>
+        <span class="sb-big">CHANGELOG</span>
+        <span class="sb-sub">VERSION HISTORY</span>
+      </div>
       <div>
         <h2 class="sec-title">版本</h2>
         <p class="sec-sub">全量改动见 <b>CHANGELOG.md</b>，控制台右上角可查。</p>
@@ -1422,10 +1589,7 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 
 </main>
 
-<nav class="fab-nav" id="fabNav" aria-label="屏幕导览">
-  <button type="button" id="fabUp" title="回到顶部" aria-label="回到顶部">&#8593;</button>
-  <button type="button" id="fabDown" title="下一屏" aria-label="下一屏">&#8595;</button>
-</nav>
+
 
 <footer>
   <div class="wrap foot-row">
@@ -1522,113 +1686,204 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
     pick();
   }
 
-  /* ── 右下角导览钮 + 键盘翻屏 ──
-     ↑ 回顶 / ↓ 去下一屏。桌面端鼠标能点，键盘也能用
-     （PageUp / PageDown / Home / End，避开输入框不抢键）。
-     出现在「滚过一屏之后」，避免一上来就挡内容。 */
+  /* ══ 平滑滚动引擎（Lenis 式惯性） ═══════════════════════════════
+     目标：滚轮/触摸时不是「一格一格蹦」，而是带阻尼地滑过去，
+     松手后还有一点点余速（惯性），像在冰面上推箱子。
+     原理（不引第三方库，~120 行）：
+       1. 拦 wheel 事件，preventDefault，自己算目标位置 target；
+       2. 每帧 rAF 里 current += (target - current) * ease，越近越慢；
+       3. 差值 < 0.4px 时吸附到 target，停掉循环，省电；
+       4. 触摸（touchmove）同样接管：手指位移直接写进滚动；
+          抬手时按瞬时速度给一段衰减惯性；
+       5. 键盘/锚点跳转走 goTo()，同样是补间而不是瞬移；
+       6. 尊重 prefers-reduced-motion：直接退化成原生滚动，一行 JS 都不跑。
+     性能：循环只写 window.scrollTo，不写 DOM 属性；视差/进度条各在
+     scroll 事件里读 scrollY，互不打扰。
+     ═══════════════════════════════════════════════════════════ */
   (function(){
-    var fab = document.getElementById('fabNav');
-    var up = document.getElementById('fabUp');
-    var down = document.getElementById('fabDown');
-    if (!fab || !up || !down) return;
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (calm) { window.__smoothOff = true; return; }
 
-    var secs = Array.prototype.slice.call(document.querySelectorAll('main > section'));
-    function topOf(el){ return el.getBoundingClientRect().top + window.scrollY - 62; }
-    function currentIdx(){
-      var y = window.scrollY + window.innerHeight * 0.34;
-      var idx = 0;
-      for (var i = 0; i < secs.length; i++) {
-        if (topOf(secs[i]) <= y) idx = i;
+    var docEl = document.documentElement;
+    var target = window.scrollY;     // 我们想去的位置
+    var current = window.scrollY;    // 实际已经滚到的位置
+    var rafId = 0;
+    var EASE = 0.11;                 // 每帧吃掉剩余的 11%：约 0.35s 到位
+
+    function maxY(){ return Math.max(0, docEl.scrollHeight - window.innerHeight); }
+    function clampY(y){ return Math.max(0, Math.min(maxY(), y)); }
+
+    function frame(){
+      rafId = 0;
+      var diff = target - current;
+      if (Math.abs(diff) < 0.4) {
+        current = target;
+        window.scrollTo(0, current);
+        window.__smoothBusy = false;
+        return;
       }
-      return idx;
+      current += diff * EASE;
+      window.scrollTo(0, Math.round(current * 100) / 100);
+      window.__smoothBusy = true;
+      rafId = requestAnimationFrame(frame);
     }
-    function goTo(i){
-      i = Math.max(0, Math.min(secs.length - 1, i));
-      var t = topOf(secs[i]);
-      var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-      window.scrollTo({ top: t, behavior: calm ? 'auto' : 'smooth' });
+    function kick(){
+      if (!rafId) rafId = requestAnimationFrame(frame);
     }
-    function sync(){
-      var y = window.scrollY;
-      var max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      fab.classList.toggle('show', y > window.innerHeight * 0.9 && y < max - 40);
-      var i = currentIdx();
-      up.disabled = y < 8;
-      down.disabled = i >= secs.length - 1 && y >= max - 8;
+    /* 所有「跳到某处」的需求都走这里，统一成补间而不是瞬移 */
+    function goTo(y, instant){
+      target = clampY(y);
+      if (instant) { current = target; window.scrollTo(0, target); window.__smoothBusy = false; return; }
+      kick();
     }
-    up.addEventListener('click', function(){ window.scrollTo({ top: 0, behavior: 'smooth' }); });
-    down.addEventListener('click', function(){ goTo(currentIdx() + 1); });
+    window.__smoothGoTo = goTo;
+    window.__smoothJump = function(y){ goTo(y, true); };   // 测试用：瞬移，不等补间
 
-    // 键盘：不在输入框里才接
+    /* ── 滚轮 ──
+       deltaMode: 0=像素 1=行 2=页。Firefox 常见 1，必须换算，
+       否则同样滚一格在 Firefox 里只有 Chrome 的 1/16 距离。 */
+    var LINE = 16, PAGE = 0.9;
+    function px(delta, mode){
+      if (mode === 1) return delta * LINE;
+      if (mode === 2) return delta * window.innerHeight * PAGE;
+      return delta;
+    }
+    window.addEventListener('wheel', function(e){
+      if (e.ctrlKey) return;                                    // 浏览器缩放，绝不拦
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;      // 横向手势放行
+      // 焦点在可独立滚动的小容器里（如演示区截图轨道）就放行
+      var el = (e.target && e.target.nodeType === 1) ? e.target : document.body;
+      while (el && el !== document.body) {
+        var st = getComputedStyle(el);
+        if ((st.overflowY === 'auto' || st.overflowY === 'scroll') && el.scrollHeight > el.clientHeight + 4) return;
+        el = el.parentElement;
+      }
+      e.preventDefault();
+      target = clampY(target + px(e.deltaY, e.deltaMode));
+      kick();
+    }, { passive: false });
+
+    /* ── 触摸：手指跟手，抬手带惯性 ── */
+    var touchY = 0, touchT = 0, touchVel = 0, touching = false;
+    window.addEventListener('touchstart', function(e){
+      if (e.touches.length !== 1) return;
+      touching = true;
+      target = current = window.scrollY;      // 打断正在跑的补间，立刻接管
+      touchY = e.touches[0].clientY; touchT = performance.now(); touchVel = 0;
+    }, { passive: true });
+    window.addEventListener('touchmove', function(e){
+      if (!touching || e.touches.length !== 1) return;
+      var y = e.touches[0].clientY;
+      var now = performance.now();
+      var dy = touchY - y;
+      var dt = Math.max(1, now - touchT);
+      window.scrollTo(0, clampY(window.scrollY + dy));
+      target = current = window.scrollY;
+      touchVel = (dy / dt) * 16;              // px / 帧
+      touchY = y; touchT = now;
+      e.preventDefault();
+    }, { passive: false });
+    window.addEventListener('touchend', function(){
+      touching = false;
+      if (Math.abs(touchVel) < 1) return;
+      // 惯性：抬手速度折算成额外行程，钳住上限避免「一甩飞到底」
+      var extra = Math.max(-window.innerHeight * 0.9, Math.min(window.innerHeight * 0.9, touchVel * 9));
+      target = clampY(window.scrollY + extra);
+      current = window.scrollY;
+      kick();
+    }, { passive: true });
+    window.addEventListener('touchcancel', function(){ touching = false; }, { passive: true });
+
+    /* ── 用户自己拖滚动条 / 浏览器搜索跳转：同步内部状态，
+       否则下一次滚轮会从「旧位置」开始算，画面跳一下 ── */
+    window.addEventListener('scroll', function(){
+      if (Math.abs(window.scrollY - current) > 2 && !rafId) {
+        current = target = window.scrollY;
+      }
+    }, { passive: true });
+
+    /* ── 锚点链接统一走补间 ── */
+    document.addEventListener('click', function(e){
+      var a = e.target.closest && e.target.closest('a[href^="#"]');
+      if (!a) return;
+      var id = a.getAttribute('href');
+      if (!id || id === '#') return;
+      var t = document.querySelector(id);
+      if (!t) return;
+      e.preventDefault();
+      goTo(t.getBoundingClientRect().top + window.scrollY - 64);
+      if (history.replaceState) history.replaceState(null, '', id);
+    });
+
+    /* ── 键盘：空格/PageUp/PageDown/Home/End/方向键 全交给补间 ── */
     document.addEventListener('keydown', function(e){
       var t = e.target;
       var tag = t && t.tagName ? t.tagName.toLowerCase() : '';
       if (tag === 'input' || tag === 'textarea' || tag === 'select' || (t && t.isContentEditable)) return;
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var vh = window.innerHeight;
       if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
-        if (e.key === ' ') {
-          // 空格默认也是往下滚，只在焦点不在按钮上时接管
-          if (tag === 'button' || tag === 'a') return;
-        }
-        e.preventDefault(); goTo(currentIdx() + 1);
+        if (tag === 'button' || tag === 'a') return;
+        e.preventDefault(); goTo(target + vh * 0.86);
       } else if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
-        e.preventDefault(); goTo(currentIdx() - 1);
+        e.preventDefault(); goTo(target - vh * 0.86);
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault(); goTo(target + 120);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault(); goTo(target - 120);
       } else if (e.key === 'Home') {
-        e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' });
+        e.preventDefault(); goTo(0);
       } else if (e.key === 'End') {
-        e.preventDefault(); window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+        e.preventDefault(); goTo(maxY());
       }
     });
 
-    var raf = 0;
-    function onScroll(){ if (!raf) raf = requestAnimationFrame(function(){ raf = 0; sync(); }); }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    sync();
+    window.addEventListener('resize', function(){
+      target = clampY(target);
+      current = window.scrollY;
+    });
+
+    window.__smoothOn = true;
   })();
 
-  /* ── 翻页引导：每节结尾的 NEXT 导轨何时「探头」 ──
-     机械滚动的毛病是「滚到哪儿算哪儿」。每个区块结尾挂一条 NEXT 导轨，
-     告诉主人下一屏叫什么、讲什么，点一下直接过去。
-     探头判定看「这个 section 的底边离视口底边还有多远」：
-       ratio = (section 底边 - 视口底边) / 视口高度
-     ratio > 0.18  → 这一屏还早，导轨藏着不打扰；
-     0 <= ratio <= 0.18 → 快看完了，导轨淡入、可点；
-     ratio < 0 → 已经翻进下一节，收回（上一屏的引导不该跟过来）。
-     IntersectionObserver 只当「有变化才重算」的闸门，真正的比例在
-     scroll 回调里算 —— IO 给不出像素级底边距离。
-     没 JS 时 <a href="#..."> 照样能跳，只是不探头。 */
+  /* ══ 视差引擎（多层 depth 驱动） ════════════════════════════════
+     每个带 data-par="depth:X" 的元素按 X 的倍率反向平移：
+     X 越大动得越狠，于是近处快、远处慢，层次就出来了。
+     只写 transform 不碰布局；元素离开视口就清掉 transform 归位，
+     避免「滚回来发现歪了」。rAF 节流，scrollY 没变就不重算。
+     ═══════════════════════════════════════════════════════════ */
   (function(){
-    var rails = Array.prototype.slice.call(document.querySelectorAll('.next-rail'));
-    if (!rails.length) return;
     var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-    var hosts = rails.map(function(a){ return a.closest('section'); });
-    var targets = rails.map(function(a){ return document.querySelector(a.getAttribute('href')); });
-    var raf = 0;
-    function update() {
-      raf = 0;
+    var layers = Array.prototype.slice.call(document.querySelectorAll('[data-par]'));
+    if (!layers.length) return;
+    if (calm) { layers.forEach(function(el){ el.style.transform = ''; }); return; }
+
+    var items = layers.map(function(el){
+      var m = /depth:\s*([\d.]+)/.exec(el.getAttribute('data-par') || '');
+      return { el: el, depth: m ? parseFloat(m[1]) : 0.1 };
+    });
+    var rafId = 0, lastY = -1;
+
+    function render(){
+      rafId = 0;
+      var y = window.scrollY;
+      if (y === lastY) return;
+      lastY = y;
       var vh = window.innerHeight;
-      for (var i = 0; i < rails.length; i++) {
-        var host = hosts[i];
-        if (!host) continue;
-        var r = host.getBoundingClientRect();
-        // 上一节整块在视口上方（已翻页）或还没进视口 → 收回
-        if (r.bottom <= 0 || r.top >= vh) { rails[i].classList.remove('peek'); continue; }
-        var ratio = (r.bottom - vh) / vh;
-        if (ratio <= 0.18) rails[i].classList.add('peek');
-        else rails[i].classList.remove('peek');
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i], el = it.el;
+        var r = el.getBoundingClientRect();
+        if (r.bottom < -200 || r.top > vh + 200) { el.style.transform = ''; continue; }
+        // 相对视口中心的归一化偏移（-1..1），乘 depth 得到位移像素
+        var p = (r.top + r.height / 2 - vh / 2) / vh;
+        p = Math.max(-1.5, Math.min(1.5, p));
+        el.style.transform = 'translate3d(0,' + (-p * it.depth * 100).toFixed(2) + 'px,0)';
       }
     }
-    function onScroll() { if (!raf) raf = requestAnimationFrame(update); }
+    function onScroll(){ if (!rafId) rafId = requestAnimationFrame(render); }
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
-    if ('IntersectionObserver' in window) {
-      var io = new IntersectionObserver(onScroll, { threshold: [0, 0.05, 0.2, 0.5, 1] });
-      targets.forEach(function(s){ s && io.observe(s); });
-      hosts.forEach(function(h){ h && io.observe(h); });
-    }
-    if (calm) { rails.forEach(function(a){ a.classList.add('peek'); }); return; }
-    update();
+    render();
   })();
 
   /* ══ 滚动进度：顶线 + 右侧「曲线」轨道 ══════════════════════════
