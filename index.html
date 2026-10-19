@@ -55,7 +55,9 @@ html[data-theme="light"]{
 }
 
 *{ box-sizing:border-box; }
+/* 平滑滚动：只对「锚点跳转」这类程序化滚动生效，滚轮/触摸的即时响应不受影响 */
 html{ scroll-behavior:smooth; -webkit-text-size-adjust:100%; }
+@media (prefers-reduced-motion:reduce){ html{ scroll-behavior:auto; } }
 body{
   margin:0;
   background:var(--void);
@@ -655,6 +657,26 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 /* ── 进场 ── */
 .reveal{ opacity:0; transform:translateY(22px); transition:opacity .7s cubic-bezier(.22,1,.36,1), transform .7s cubic-bezier(.22,1,.36,1); }
 .reveal.in{ opacity:1; transform:none; }
+/* 滚动微视差：区块编号 / 标题在滚动时按不同速率上移，制造层次。
+   速度系数由 JS 写进 --par（视口进度的 0→1），只做 translateY，不动布局，
+   所以不会引起重排；位移量封顶 18px，淡出只到 .55，保证文字始终可读。 */
+.sec-head .sec-num,
+.sec-head .sec-title,
+.sec-head .sec-sub{ transform:translateY(0); opacity:1; }
+/* 只有进入视口后才开 GPU 层，避免 7 个区块同时常驻 will-change */
+.sec-head[data-par-on] .sec-num,
+.sec-head[data-par-on] .sec-title,
+.sec-head[data-par-on] .sec-sub{ will-change:transform,opacity; }
+.sec-head .sec-num{ transform:translateY(calc(var(--par,0) * -10px)); }
+.sec-head .sec-title{ transform:translateY(calc(var(--par,0) * -18px)); opacity:calc(1 - var(--par,0) * .45); }
+.sec-head .sec-sub{ transform:translateY(calc(var(--par,0) * -6px)); opacity:calc(1 - var(--par,0) * .45); }
+/* 移动端标题本来就小，视差收益低、反而容易糊，直接关掉 */
+@media (max-width:720px){
+  .sec-head .sec-num,.sec-head .sec-title,.sec-head .sec-sub{ transform:none; opacity:1; }
+}
+@media (prefers-reduced-motion:reduce){
+  .sec-head .sec-num,.sec-head .sec-title,.sec-head .sec-sub{ transform:none; opacity:1; }
+}
 
 /* ── 响应式 ── */
 @media (max-width:1080px){
@@ -1364,8 +1386,7 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   var draw = document.getElementById('scrollDraw');
   var knob = document.getElementById('scrollKnob');
   var pct = document.getElementById('scrollPct');
-  if (fill && draw && knob) {
-    var LEN = 0, PTS = [];
+  if (fill && draw && knob) {    var LEN = 0, PTS = [];
     try { LEN = draw.getTotalLength(); } catch (e) { LEN = 0; }
     if (LEN > 0) {
       // 预采样 101 个点，滚动时按比例取，避免每帧都调 getPointAtLength
@@ -1378,6 +1399,8 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
     }
 
     var raf = 0;
+    /* 记录上一次的 t，没变就不写 DOM —— 静止滚动（惯性末段、resize）时省掉整帧 */
+    var lastT = -1;
     function onScroll() {
       if (raf) return;
       raf = requestAnimationFrame(function(){
@@ -1385,6 +1408,8 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
         var doc = document.documentElement;
         var max = Math.max(1, doc.scrollHeight - window.innerHeight);
         var t = Math.min(1, Math.max(0, window.scrollY / max));
+        if (Math.abs(t - lastT) < 0.0005) return;
+        lastT = t;
         fill.style.width = (t * 100).toFixed(2) + '%';
         if (pct) pct.textContent = Math.round(t * 100) + '%';
         if (LEN > 0) {
@@ -1400,8 +1425,59 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
     onScroll();
   }
 
-  /* ══ 可互动演示 ════════════════════════════════════════════════
-     真截图切换 + 假流水线。截图本身不会动（是真界面），
+  /* ── 区块标题微视差 ──
+     对每个 .sec-head 单独算它在视口里的进度 p（0=刚从底下进来，1=已经从顶上消失），
+     写进 --par。CSS 里 sec-num / title / sub 按不同系数位移，
+     于是滚动时标题「走得比内容慢一点」，层次就出来了。
+     只改自定义属性 + transform，不碰布局，不触发重排。
+     注意：这段必须放在上面 `if (fill && draw && knob)` 之外 ——
+     视差不依赖进度条元素是否存在，塞在 if 里会让它在元素缺失时静默失效。 */
+  (function () {
+    var heads = Array.prototype.slice.call(document.querySelectorAll('.sec-head'));
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (heads.length && !calm && 'IntersectionObserver' in window) {
+      var headsIO = new IntersectionObserver(function(entries){
+        entries.forEach(function(en){
+          if (!en.isIntersecting) return;
+          en.target.dataset.parOn = '1';
+          headsIO.unobserve(en.target);
+        });
+      }, { threshold: 0, rootMargin: '0px 0px -6% 0px' });
+      heads.forEach(function(h){ headsIO.observe(h); });
+      var parRaf = 0;
+      var parSkip = false;
+      function onParScroll() {
+        // 窄屏 CSS 已关视差，直接不解绑监听但整帧跳过，省 CPU
+        parSkip = window.innerWidth < 720;
+        if (parSkip) { heads.forEach(function(h){ h.style.removeProperty('--par'); }); return; }
+        if (parRaf) return;
+        parRaf = requestAnimationFrame(function(){
+          parRaf = 0;
+          if (window.innerWidth < 720) return;
+          var vh = window.innerHeight;
+          for (var i = 0; i < heads.length; i++) {
+            var h = heads[i];
+            if (h.dataset.parOn !== '1') continue;
+            var r = h.getBoundingClientRect();
+            /* p = 标题在视口里的进度：0=刚从底边探进来，1=已经完全从顶边消失。
+               分母用「视口高 + 标题高」而不是视口高 —— 标题只有一百多像素高，
+               若除以 vh，它要偏离视口中心半个屏幕才走到 p=1，实际能看到的
+               一大段行程里 p 恒为 0，视差就白做了。 */
+            var p = 1 - (r.top + r.height) / (vh + r.height);
+            p = Math.min(1, Math.max(0, p));
+            // 离开视口后撤掉属性，让标题完全归位，不会残留位移
+            if (r.bottom < 0 || r.top > vh) h.style.removeProperty('--par');
+            else h.style.setProperty('--par', p.toFixed(3));
+          }
+        });
+      }
+      window.addEventListener('scroll', onParScroll, { passive: true });
+      window.addEventListener('resize', onParScroll, { passive: true });
+      onParScroll();
+    }
+  })();
+
+  /* ══ 可互动演示 ════════════════════════════════════════════════     真截图切换 + 假流水线。截图本身不会动（是真界面），
      能动的是：切哪个分区、切主题、跑一遍四步进度。
      ═══════════════════════════════════════════════════════════ */
   var stage = document.getElementById('demoStage');
