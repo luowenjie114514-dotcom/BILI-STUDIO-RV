@@ -131,12 +131,23 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
 .hud-nav{ display:flex; gap:2px; margin-left:auto; overflow-x:auto; scrollbar-width:none; }
 .hud-nav::-webkit-scrollbar{ display:none; }
 .hud-nav a{
+  position:relative;
   font-family:var(--mono); font-size:11px; letter-spacing:.08em;
   color:var(--txt-dim); text-decoration:none; white-space:nowrap;
   padding:6px 11px; border:1px solid transparent; border-radius:0;
   transition:color .18s,border-color .18s,background .18s;
 }
 .hud-nav a:hover{ color:var(--phosphor); border-color:var(--line); background:var(--glow-soft); }
+/* 当前所在区块：箭头指下来 + 一条短下划线，主人一眼知道自己在第几屏 */
+.hud-nav a[aria-current="true"]{
+  color:var(--phosphor); border-color:var(--line); background:var(--glow-soft);
+}
+.hud-nav a[aria-current="true"]::after{
+  content:""; position:absolute; left:50%; bottom:-7px; width:0; height:0;
+  transform:translateX(-50%);
+  border-left:5px solid transparent; border-right:5px solid transparent;
+  border-top:5px solid var(--phosphor);
+}
 .hud-tools{ display:flex; gap:8px; flex:none; }
 .hud-btn{
   font-family:var(--mono); font-size:11px; letter-spacing:.06em;
@@ -331,6 +342,71 @@ section{ position:relative; z-index:2; padding:clamp(64px,9vw,132px) 0; scroll-m
   position:absolute; left:50%; bottom:-26px; transform:translateX(-50%);
   font-family:var(--mono); font-size:10px; letter-spacing:.08em;
   color:var(--phosphor); white-space:nowrap;
+}
+
+/* 右下角浮动导览钮：滚过一屏后才出现。
+   两个作用：↑ 回顶，↓ 去下一屏。键盘同样能触发（见 JS 的 PageUp/PageDown）。 */
+.fab-nav{
+  position:fixed; right:22px; bottom:26px; z-index:115;
+  display:none; flex-direction:column; gap:0;
+  border:1px solid var(--line-strong);
+  background:var(--hull-2);
+  opacity:0; transform:translateY(10px); pointer-events:none;
+  transition:opacity .3s ease, transform .3s cubic-bezier(.22,1,.36,1), border-color .2s;
+}
+@media (min-width:1081px){ .fab-nav{ display:flex; } }
+.fab-nav.show{ opacity:1; transform:none; pointer-events:auto; }
+.fab-nav:hover{ border-color:var(--phosphor); }
+.fab-nav button{
+  width:38px; height:34px;
+  font-family:var(--mono); font-size:13px; line-height:1;
+  color:var(--txt-dim); background:transparent; cursor:pointer;
+  border:0; border-radius:0;
+  transition:color .18s, background .18s;
+}
+.fab-nav button:hover{ color:var(--phosphor); background:var(--glow-soft); }
+.fab-nav button + button{ border-top:1px solid var(--line-strong); }
+.fab-nav button:disabled{ opacity:.3; cursor:default; }
+.fab-nav button:disabled:hover{ color:var(--txt-dim); background:transparent; }
+@media (prefers-reduced-motion:reduce){
+  .fab-nav{ transition:none; transform:none; }
+}
+
+/* ── 翻页引导（section 之间）──────────────────────────────────────
+   机械滚动的毛病是「滚到哪儿算哪儿」。每个区块结尾挂一条 NEXT 导轨：
+   告诉主人下一屏叫什么、讲什么、点一下直接过去。
+   做法是在每个 </section> 前插一个 <a class="next-rail">，
+   href 指向下一个 section，所以没有 JS 也能跳；JS 只负责
+   在视口里时让它从底部「探出头」，以及更新编号/标题文案。
+   只在宽屏显示：窄屏本身一屏一块，导轨收益低还挡内容。
+   ──────────────────────────────────────────────────────────────── */
+.next-rail{
+  position:absolute; left:50%; bottom:clamp(10px,2.4vw,26px);
+  transform:translate(-50%,14px);
+  display:none; align-items:center; gap:12px;
+  padding:9px 14px;
+  border:1px solid var(--line-strong);
+  background:var(--hull-2);
+  color:var(--txt-dim); text-decoration:none;
+  font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+  opacity:0; pointer-events:none;
+  transition:opacity .35s ease, transform .35s cubic-bezier(.22,1,.36,1), border-color .2s, color .2s;
+  z-index:5;
+}
+@media (min-width:1081px){ .next-rail{ display:inline-flex; } }
+/* JS 探测到「这个区块快滚完了」时加 .peek：真正可点 */
+.next-rail.peek{ opacity:1; transform:translate(-50%,0); pointer-events:auto; }
+.next-rail:hover{ color:var(--phosphor); border-color:var(--phosphor); }
+.next-rail .nr-k{
+  color:var(--stencil-bg); background:var(--phosphor);
+  padding:2px 7px; font-size:10px; letter-spacing:.1em;
+}
+.next-rail .nr-label{ color:var(--txt-dim); }
+.next-rail:hover .nr-label{ color:var(--phosphor); }
+.next-rail .nr-title{ color:var(--txt-strong); font-family:var(--disp); font-size:13px; letter-spacing:.04em; text-transform:uppercase; }
+.next-rail .nr-arrow{ color:var(--phosphor); }
+@media (prefers-reduced-motion:reduce){
+  .next-rail{ transition:none; transform:translate(-50%,0); }
 }
 
 /* ── 区块标题（瑞士风：编号 + 大标题 + 说明，严格网格） ── */
@@ -871,6 +947,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
+
+  <a class="next-rail" href="#overview">
+    <span class="nr-k">02</span>
+    <span class="nr-label">下一屏</span>
+    <span class="nr-title">功能</span>
+    <span class="nr-arrow">&#8595;</span>
+  </a>
 </section>
 
 <!-- ═══ 01 功能 ═══ -->
@@ -922,6 +1005,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
+
+  <a class="next-rail" href="#pipeline">
+    <span class="nr-k">03</span>
+    <span class="nr-label">下一屏</span>
+    <span class="nr-title">流水线</span>
+    <span class="nr-arrow">&#8595;</span>
+  </a>
 </section>
 
 <!-- ═══ 02 流水线 ═══ -->
@@ -982,6 +1072,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
+
+  <a class="next-rail" href="#deck">
+    <span class="nr-k">04</span>
+    <span class="nr-label">下一屏</span>
+    <span class="nr-title">分区</span>
+    <span class="nr-arrow">&#8595;</span>
+  </a>
 </section>
 
 <!-- ═══ 03 分区 ═══ -->
@@ -1132,6 +1229,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 
     </div>
   </div>
+
+  <a class="next-rail" href="#interface">
+    <span class="nr-k">05</span>
+    <span class="nr-label">下一屏</span>
+    <span class="nr-title">接口</span>
+    <span class="nr-arrow">&#8595;</span>
+  </a>
 </section>
 
 <!-- ═══ 05 接口 ═══ -->
@@ -1180,6 +1284,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
+
+  <a class="next-rail" href="#safety">
+    <span class="nr-k">06</span>
+    <span class="nr-label">下一屏</span>
+    <span class="nr-title">边界</span>
+    <span class="nr-arrow">&#8595;</span>
+  </a>
 </section>
 
 <!-- ═══ 07 边界 ═══ -->
@@ -1235,6 +1346,13 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
       </div>
     </div>
   </div>
+
+  <a class="next-rail" href="#log">
+    <span class="nr-k">07</span>
+    <span class="nr-label">下一屏</span>
+    <span class="nr-title">版本</span>
+    <span class="nr-arrow">&#8595;</span>
+  </a>
 </section>
 
 <!-- ═══ 08 版本 ═══ -->
@@ -1304,6 +1422,11 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
 
 </main>
 
+<nav class="fab-nav" id="fabNav" aria-label="屏幕导览">
+  <button type="button" id="fabUp" title="回到顶部" aria-label="回到顶部">&#8593;</button>
+  <button type="button" id="fabDown" title="下一屏" aria-label="下一屏">&#8595;</button>
+</nav>
+
 <footer>
   <div class="wrap foot-row">
     <div>bili-studio <b>v1.5.4</b> · 本机运行 · 无遥测</div>
@@ -1362,20 +1485,151 @@ footer{ position:relative; z-index:2; border-top:2px solid var(--line-strong); b
   var links = Array.prototype.slice.call(document.querySelectorAll('.hud-nav a'));
   var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); }).filter(Boolean);
   if (secs.length && 'IntersectionObserver' in window) {
-    var io2 = new IntersectionObserver(function(entries){
-      entries.forEach(function(en){
-        if (!en.isIntersecting) return;
-        var id = '#' + en.target.id;
+    /* 用「谁占据视口最多」而不是「谁刚好相交」来定当前区块。
+       相交回调里多个 section 会同时触发，后到的把先到的覆盖掉，
+       表现为顶栏高亮乱跳；改成按 intersectionRatio 取最大，一次回调只认一个赢家。
+       ratio 相等时用 getBoundingClientRect().top 判：更靠上的赢（往上滚时先换）。 */
+    var best = { id: null, ratio: -1, top: Infinity };
+    function pick() {
+      var win = null, winRatio = -1, winTop = Infinity;
+      secs.forEach(function(s){
+        var r = s.getBoundingClientRect();
+        var vh = window.innerHeight;
+        var vis = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+        var ratio = Math.max(0, vis) / Math.max(1, r.height);
+        if (ratio > winRatio + 0.001 || (Math.abs(ratio - winRatio) <= 0.001 && r.top < winTop)) {
+          win = s; winRatio = ratio; winTop = r.top;
+        }
+      });
+      if (win && win.id !== best.id) {
+        best = { id: win.id, ratio: winRatio, top: winTop };
+        var id = '#' + win.id;
         links.forEach(function(a){
           var on = a.getAttribute('href') === id;
-          a.style.color = on ? 'var(--phosphor)' : '';
-          a.style.borderColor = on ? 'var(--line)' : '';
-          a.style.background = on ? 'var(--glow-soft)' : '';
+          if (on) a.setAttribute('aria-current', 'true');
+          else a.removeAttribute('aria-current');
         });
+      }
+    }
+    var io2 = new IntersectionObserver(function(entries){
+      // 只在有 section 真正进出视口时重算，避免每个滚动帧都全量量一遍
+      var moved = entries.some(function(en){
+        return en.isIntersecting || en.boundingClientRect.top < window.innerHeight;
       });
-    }, { threshold: 0.25 });
+      if (moved) pick();
+    }, { threshold: [0, 0.1, 0.25, 0.5, 0.75] });
     secs.forEach(function(s){ io2.observe(s); });
+    pick();
   }
+
+  /* ── 右下角导览钮 + 键盘翻屏 ──
+     ↑ 回顶 / ↓ 去下一屏。桌面端鼠标能点，键盘也能用
+     （PageUp / PageDown / Home / End，避开输入框不抢键）。
+     出现在「滚过一屏之后」，避免一上来就挡内容。 */
+  (function(){
+    var fab = document.getElementById('fabNav');
+    var up = document.getElementById('fabUp');
+    var down = document.getElementById('fabDown');
+    if (!fab || !up || !down) return;
+
+    var secs = Array.prototype.slice.call(document.querySelectorAll('main > section'));
+    function topOf(el){ return el.getBoundingClientRect().top + window.scrollY - 62; }
+    function currentIdx(){
+      var y = window.scrollY + window.innerHeight * 0.34;
+      var idx = 0;
+      for (var i = 0; i < secs.length; i++) {
+        if (topOf(secs[i]) <= y) idx = i;
+      }
+      return idx;
+    }
+    function goTo(i){
+      i = Math.max(0, Math.min(secs.length - 1, i));
+      var t = topOf(secs[i]);
+      var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+      window.scrollTo({ top: t, behavior: calm ? 'auto' : 'smooth' });
+    }
+    function sync(){
+      var y = window.scrollY;
+      var max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      fab.classList.toggle('show', y > window.innerHeight * 0.9 && y < max - 40);
+      var i = currentIdx();
+      up.disabled = y < 8;
+      down.disabled = i >= secs.length - 1 && y >= max - 8;
+    }
+    up.addEventListener('click', function(){ window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    down.addEventListener('click', function(){ goTo(currentIdx() + 1); });
+
+    // 键盘：不在输入框里才接
+    document.addEventListener('keydown', function(e){
+      var t = e.target;
+      var tag = t && t.tagName ? t.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || (t && t.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+        if (e.key === ' ') {
+          // 空格默认也是往下滚，只在焦点不在按钮上时接管
+          if (tag === 'button' || tag === 'a') return;
+        }
+        e.preventDefault(); goTo(currentIdx() + 1);
+      } else if (e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+        e.preventDefault(); goTo(currentIdx() - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (e.key === 'End') {
+        e.preventDefault(); window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+      }
+    });
+
+    var raf = 0;
+    function onScroll(){ if (!raf) raf = requestAnimationFrame(function(){ raf = 0; sync(); }); }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    sync();
+  })();
+
+  /* ── 翻页引导：每节结尾的 NEXT 导轨何时「探头」 ──
+     机械滚动的毛病是「滚到哪儿算哪儿」。每个区块结尾挂一条 NEXT 导轨，
+     告诉主人下一屏叫什么、讲什么，点一下直接过去。
+     探头判定看「这个 section 的底边离视口底边还有多远」：
+       ratio = (section 底边 - 视口底边) / 视口高度
+     ratio > 0.18  → 这一屏还早，导轨藏着不打扰；
+     0 <= ratio <= 0.18 → 快看完了，导轨淡入、可点；
+     ratio < 0 → 已经翻进下一节，收回（上一屏的引导不该跟过来）。
+     IntersectionObserver 只当「有变化才重算」的闸门，真正的比例在
+     scroll 回调里算 —— IO 给不出像素级底边距离。
+     没 JS 时 <a href="#..."> 照样能跳，只是不探头。 */
+  (function(){
+    var rails = Array.prototype.slice.call(document.querySelectorAll('.next-rail'));
+    if (!rails.length) return;
+    var calm = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+    var hosts = rails.map(function(a){ return a.closest('section'); });
+    var targets = rails.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+    var raf = 0;
+    function update() {
+      raf = 0;
+      var vh = window.innerHeight;
+      for (var i = 0; i < rails.length; i++) {
+        var host = hosts[i];
+        if (!host) continue;
+        var r = host.getBoundingClientRect();
+        // 上一节整块在视口上方（已翻页）或还没进视口 → 收回
+        if (r.bottom <= 0 || r.top >= vh) { rails[i].classList.remove('peek'); continue; }
+        var ratio = (r.bottom - vh) / vh;
+        if (ratio <= 0.18) rails[i].classList.add('peek');
+        else rails[i].classList.remove('peek');
+      }
+    }
+    function onScroll() { if (!raf) raf = requestAnimationFrame(update); }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(onScroll, { threshold: [0, 0.05, 0.2, 0.5, 1] });
+      targets.forEach(function(s){ s && io.observe(s); });
+      hosts.forEach(function(h){ h && io.observe(h); });
+    }
+    if (calm) { rails.forEach(function(a){ a.classList.add('peek'); }); return; }
+    update();
+  })();
 
   /* ══ 滚动进度：顶线 + 右侧「曲线」轨道 ══════════════════════════
      曲线用 SVG path 画，滚动进度 = stroke-dashoffset 从全长走到 0，
