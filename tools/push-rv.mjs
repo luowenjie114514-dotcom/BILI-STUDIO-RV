@@ -76,6 +76,7 @@ const targets = [
   ['tools/enable-pages.mjs', path.join(SRC, 'tools', 'enable-pages.mjs'), 'tools: Pages 开关脚本'],
   ['tools/shot-console.mjs', path.join(SRC, 'tools', 'shot-console.mjs'), 'tools: 控制台截图脚本'],
   ['tools/crop-console.py', path.join(SRC, 'tools', 'crop-console.py'), 'tools: 截图裁剪脚本'],
+  ['tools/scroll-check.mjs', path.join(SRC, 'tools', 'scroll-check.mjs'), 'tools: 滚动效果断言脚本'],
 ];
 
 let ok = 0;
